@@ -28,9 +28,6 @@ public class Manager extends BaseManager {
                     .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(job.getHour(), job.getMinute()))
                     .build();
             scheduler.scheduleJob(jobDetail, trigger);
-            if(!job.getEnable()){
-                scheduler.pauseJob(new JobKey(job.getHash(), "JOB"));
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -43,32 +40,19 @@ public class Manager extends BaseManager {
             e.printStackTrace();
         }
     }
-    public void pauseJob(String jobHash) {
-        try {
-            scheduler.pauseJob(new JobKey(jobHash, "JOB"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    public void resumeJob(String jobHash) {
-        try {
-            scheduler.resumeJob(new JobKey(jobHash, "JOB"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    public void runJob(JobModel job) {
-        users.get(job.getSource()).setShop(job.getShopId())
-                .setTarget(job.getTarget())
-                .avoid(job.getBlackList())
-                .need(job.getNeedList())
-                .waitForShop()
-                .run();
-    }
 
-    public void triggerJob(String jobHash) {
+    public void trigJob(String jobHash) {
         try {
             scheduler.triggerJob(new JobKey(jobHash, "JOB"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateJob(String hash, JobModel jobModel) {
+        try {
+            scheduler.deleteJob(new JobKey(hash, "JOB"));
+            addJob(jobModel);
         } catch (Exception e) {
             e.printStackTrace();
         }

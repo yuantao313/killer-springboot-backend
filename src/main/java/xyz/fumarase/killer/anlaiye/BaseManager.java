@@ -22,12 +22,16 @@ public class BaseManager {
     }
 
     public void runJob(JobModel job) {
-        // todo 解耦
-        users.get(job.getSource()).setShop(job.getShopId())
-                .setTarget(job.getTarget())
-                .avoid(job.getBlackList())
-                .need(job.getNeedList())
-                .waitForShop()
-                .run();
+        //todo 与jobmodel解耦
+
+        if (job.getEnable())
+        {
+            users.get(job.getSource()).setShop(job.getShopId())
+                    .setTarget(job.getTarget())
+                    .avoid(job.getBlackList())
+                    .need(job.getNeedList())
+                    .waitForShop()
+                    .run(job.getTimeout());
+        }
     }
 }

@@ -83,7 +83,7 @@ public class User implements IToModel{
         return userModel;
     }
 
-    public void run() {
+    public void run(Integer timeout) {
         List<OrderGood> orderGoods = shop.order(blackList,needList);
         String delivery = client.precheck(shop, orderGoods);
         Order order = OrderBuilder.newOrder()
@@ -92,7 +92,7 @@ public class User implements IToModel{
                 .setOrderGoods(orderGoods)
                 .setDelivery((new SimpleDateFormat("yyyyMMdd")).format(new Date()),delivery)
                 .build();
-        String orderId = client.order(order);
+        Long orderId = client.order(order,timeout);
         logger.info("订单号：" + orderId);
     }
 

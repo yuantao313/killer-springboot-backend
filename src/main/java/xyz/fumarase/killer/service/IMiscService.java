@@ -5,6 +5,9 @@ import xyz.fumarase.killer.model.ConfigModel;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * @author YuanTao
+ */
 public interface IMiscService {
     public Boolean requestCaptcha(Long userId);
 

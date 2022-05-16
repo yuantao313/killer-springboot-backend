@@ -13,6 +13,9 @@ import java.util.HashMap;
 @CrossOrigin
 public class UserController {
     @Autowired
+    public void setUserService(UserServiceImpl userService) {
+        this.userService = userService;
+    }
     private UserServiceImpl userService;
 
     @GetMapping("/user")
@@ -30,7 +33,6 @@ public class UserController {
             return new MyResponse(false);
         }
     }
-
 
 
     @DeleteMapping("/user/{userId}")

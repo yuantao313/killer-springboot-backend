@@ -9,21 +9,33 @@ import xyz.fumarase.killer.model.ConfigModel;
 
 import java.util.HashMap;
 import java.util.List;
+
+/**
+ * @author YuanTao
+ */
 @Service("MiscService")
 public class MiscServiceImpl implements IMiscService {
-    @Autowired
     private ConfigMapper configMapper;
+
+    @Autowired
+    public void setConfigMapper(ConfigMapper configMapper) {
+        this.configMapper = configMapper;
+    }
+
     @Override
     public Boolean requestCaptcha(Long userId) {
         return Login.requestCaptcha(userId);
     }
+
     @Override
     public List<HashMap<String, Object>> getSchool(Integer schoolId) {
         return (new Client()).getSchool(schoolId);
     }
 
     @Override
-    public ConfigModel getConfig(Integer id){
+    public ConfigModel getConfig(Integer id) {
         return configMapper.selectById(id);
-    };
+    }
+
+    ;
 }

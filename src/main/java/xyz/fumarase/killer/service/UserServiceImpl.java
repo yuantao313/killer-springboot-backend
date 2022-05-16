@@ -1,5 +1,7 @@
 package xyz.fumarase.killer.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import xyz.fumarase.killer.anlaiye.Login;
@@ -22,6 +24,7 @@ public class UserServiceImpl implements IUserService {
     private UserMapper userMapper;
     @Autowired
     private Manager manager;
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     public List<User> getUser() {
         return new ArrayList<User>(manager.getUsers().values());
@@ -29,6 +32,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public Boolean addUser(Long userId, String captcha) {
+        logger.info("添加用户" + userId);
         try {
             UserModel userModel = new UserModel();
             userModel.setUserId(userId);
@@ -46,6 +50,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public Boolean deleteUser(Long userId) {
+        logger.info("删除用户" + userId);
         try {
             userMapper.deleteById(userId);
             manager.deleteUser(userId);
@@ -55,6 +60,4 @@ public class UserServiceImpl implements IUserService {
             return false;
         }
     }
-
-
 }

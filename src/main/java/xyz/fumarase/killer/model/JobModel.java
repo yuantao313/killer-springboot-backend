@@ -33,7 +33,7 @@ public class JobModel extends Model{
     @TableField(value = "need_list", typeHandler = JacksonTypeHandler.class)
     HashMap<String, Integer> needList;
     Boolean enable;
-
+    Integer timeout;
     @TableId
     String hash;
 

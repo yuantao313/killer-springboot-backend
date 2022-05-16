@@ -2,7 +2,7 @@
 It is still developing.
 ## Known issues
 
-- A job that is impossible to be finished will stay in a dead loop.
+- <s>A job that is impossible to be finished will stay in a dead loop.</s>
 > Fix method: Add a timeout param.
 - Shop.isOpen is not implemented, which will always return true.
 > Fix method: Import redis and cache it.

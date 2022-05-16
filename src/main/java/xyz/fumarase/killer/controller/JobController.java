@@ -15,36 +15,48 @@ import java.util.Map;
 @RestController
 @CrossOrigin
 public class JobController {
-    @Autowired
+
     private JobServiceImpl jobService;
 
+    @Autowired
+    public void setJobService(JobServiceImpl jobService) {
+        this.jobService = jobService;
+    }
+
     @GetMapping("/job")
-    public MyResponse job() {
+    public MyResponse getJobs() {
         Map<String, Object> map = new HashMap<>();
         map.put("jobs", jobService.getJob());
         return new MyResponse(true, map);
     }
 
+    @GetMapping("/job/{hash}")
+    public MyResponse getJob(@PathVariable("hash") String hash) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("job", jobService.getJob(hash));
+        return new MyResponse(true, map);
+    }
+
     @PostMapping("/job")
-    public MyResponse job(@RequestBody JobModel jobModel) {
+    public MyResponse addJob(@RequestBody JobModel jobModel) {
         jobService.addJob(jobModel.initHash());
         return new MyResponse(true);
     }
 
     @PutMapping("/job/{hash}")
     public MyResponse updateJob(@PathVariable("hash") String hash, @RequestBody JobModel jobModel) {
-        jobService.updateJob(hash,jobModel);
+        jobService.updateJob(hash, jobModel);
         return new MyResponse(true);
     }
 
     @DeleteMapping("/job/{hash}")
-    public MyResponse job(@PathVariable("hash") String hash) {
+    public MyResponse deleteJob(@PathVariable("hash") String hash) {
         jobService.deleteJob(hash);
         return new MyResponse(true);
     }
 
     @PostMapping("/job/{hash}/trig")
-    public MyResponse runJob(@PathVariable("hash") String hash) {
+    public MyResponse trigJob(@PathVariable("hash") String hash) {
         jobService.trigJob(hash);
         return new MyResponse(true);
     }

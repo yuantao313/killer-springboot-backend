@@ -2,6 +2,7 @@ package xyz.fumarase.killer.anlaiye;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.Getter;
@@ -9,6 +10,8 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import xyz.fumarase.killer.anlaiye.object.*;
 
 import java.io.IOException;
@@ -19,6 +22,7 @@ import java.util.*;
  */
 @Getter
 public class Client implements IClient {
+    private final static Logger logger = LoggerFactory.getLogger(Client.class);
     private final OkHttpClient httpClient = new OkHttpClient();
     private final static JsonMapper jsonMapper = new JsonMapper();
     private final Integer schoolId;
@@ -39,7 +43,8 @@ public class Client implements IClient {
 
     /**
      * 设定token
-     * @param token token
+     *
+     * @param token      token
      * @param loginToken loginToken
      * @return 当前实例
      */
@@ -220,22 +225,28 @@ public class Client implements IClient {
         }
     }
 
-    public String order(Order order) {
-        try {
-            if (!order.getGoods().isEmpty()) {
-                while (true) {
-                    JsonNode orderNode = post("food/order/info", jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {
-                    }));
-                    if (orderNode.get("result").asBoolean()) {
-                        return orderNode.get("data").get("orderId").asText();
-                    }else{
-                        Thread.sleep(1000);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    public Long order(Order order, Integer timeout) {
+        if (order.getGoods().isEmpty()) {
+            return -1L;
         }
-        return null;
+        Long orderId = null;
+        while (orderId == null) {
+            try {
+                JsonNode orderNode = post("food/order/info", jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {
+                }));
+                if (orderNode.get("result").asBoolean()) {
+                    orderId = orderNode.get("data").get("orderId").asLong();
+                    logger.info("下单成功,订单号为{}", orderId);
+                }
+                if (timeout > 0) {
+                    logger.info("下单失败,1s后重试");
+                    Thread.sleep(1000);
+                    timeout -= 1;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return orderId;
     }
 }

@@ -59,35 +59,40 @@ public class Shop {
         logger.info("开始按照需求添加");
         logger.info("需求: {}", needList);
         HashMap<Long, OrderGood> shoppingCart = new HashMap<>(size);
+        HashMap<String, Integer> myNeedList = new HashMap<>(needList.size());
         boolean added;
+        boolean limitA;
+        boolean limitB;
         do {
             added = false;
             for (Good good : goods) {
                 Long goodId = good.getGoodId();
                 String keyWord = good.belongTo(new ArrayList<>(needList.keySet()));
                 if (keyWord != null) {
+                    limitA = true;
+                    limitB = true;
                     logger.info("准备添加{},关键词:{}", good.getName(), keyWord);
-                    if (shoppingCart.containsKey(goodId)) {
-                        OrderGood orderGood = shoppingCart.get(goodId);
-                        if (good.hasLimit()) {
-                            if (orderGood.getNumber() < needList.get(keyWord)) {
-                                orderGood.setNumber(orderGood.getNumber() + 1);
-                                added = true;
-                                logger.info("已添加:{}/{}", orderGood.getNumber(), needList.get(keyWord));
-                                //todo bug:应该copy needlist 然后相减
-                            } else {
-                                logger.info("达到上限");
-                            }
+                    if (myNeedList.getOrDefault(keyWord, 0) >= needList.get(keyWord)) {
+                        limitA = false;
+                    }
+                    if (good.hasLimit() && shoppingCart.getOrDefault(goodId, OrderGood.EMPTY_ORDER_GOOD).getNumber() >= good.getLimit()) {
+                        logger.info("{}已达到限购上限", good.getName());
+                        limitB = false;
+                    }
+                    if (limitA && limitB) {
+                        added=true;
+                        myNeedList.put(keyWord, myNeedList.getOrDefault(keyWord, 0) + 1);
+                        if (shoppingCart.containsKey(goodId)) {
+                            shoppingCart.get(goodId).setNumber(shoppingCart.get(goodId).getNumber() + 1);
+                        } else {
+                            shoppingCart.put(goodId, good.toOrder());
                         }
-                    } else {
-                        OrderGood orderGood = good.toOrder();
-                        shoppingCart.put(goodId, orderGood);
-                        logger.info("已添加:{}/{}", orderGood.getNumber(), needList.get(keyWord));
-                        added = true;
+                        logger.info("已添加{}:{}/{}", keyWord, myNeedList.get(keyWord), needList.get(keyWord));
                     }
                 }
             }
-        } while (added);
+        }
+        while (added);
         logger.info("购物车总计{}件商品", shoppingCart.size());
         return new ArrayList<>(shoppingCart.values());
     }
