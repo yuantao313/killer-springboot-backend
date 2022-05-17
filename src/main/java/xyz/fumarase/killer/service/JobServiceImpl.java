@@ -1,5 +1,6 @@
 package xyz.fumarase.killer.service;
-
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,21 +9,19 @@ import xyz.fumarase.killer.anlaiye.Manager;
 import xyz.fumarase.killer.model.JobModel;
 import xyz.fumarase.killer.mapper.JobMapper;
 
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author YuanTao
  */
 @Service("JobService")
+@NoArgsConstructor
+@AllArgsConstructor
 public class JobServiceImpl implements IJobService {
     private static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
 
-    private JobMapper jobMapper;
-
-    @Autowired
-    public void setJobMapper(JobMapper jobMapper) {
-        this.jobMapper = jobMapper;
-    }
 
     private Manager manager;
 
@@ -33,46 +32,65 @@ public class JobServiceImpl implements IJobService {
 
 
     @Override
-    public void addJob(JobModel jobModel) {
+    public boolean addJob(JobModel jobModel) {
+        logger.info("添加任务：" + jobModel.toString());
         try {
-            logger.info("添加任务：" + jobModel.toString());
-            jobMapper.insert(jobModel);
+
             manager.addJob(jobModel);
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 
     @Override
-    public void updateJob(String hash, JobModel jobModel) {
+    public boolean updateJob(Integer id, JobModel jobModel) {
         try {
-            jobMapper.updateById(jobModel);
-            manager.updateJob(hash, jobModel);
+            manager.updateJob(id, jobModel);
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 
     @Override
-    public void deleteJob(String jobHash) {
-        logger.info("删除任务：" + jobHash);
-        jobMapper.deleteById(jobHash);
-        manager.deleteJob(jobHash);
+    public boolean updateJob(Integer id, Map<String, Object> value) {
+        manager.updateJob(id, value);
+        return true;
     }
 
     @Override
-    public List<JobModel> getJob() {
-        return jobMapper.selectList(null);
+    public boolean deleteJob(Integer id) {
+        try {
+            manager.deleteJob(id);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Override
-    public JobModel getJob(String hash) {
-        return jobMapper.selectById(hash);
+    public List<JobModel> getJobs() {
+        return manager.getJobs();
     }
 
     @Override
-    public void trigJob(String hash) {
-        logger.info("触发任务：" + hash);
-        manager.trigJob(hash);
+    public JobModel getJob(Integer id) {
+        return manager.getJob(id);
+    }
+
+    @Override
+    public boolean trigJob(Integer id) {
+        try {
+            //manager.trigJob(id);
+            manager.runJob(id);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

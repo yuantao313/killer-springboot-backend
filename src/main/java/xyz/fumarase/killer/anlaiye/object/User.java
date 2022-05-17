@@ -17,7 +17,7 @@ import java.util.List;
  * @author YuanTao
  */
 @Data
-public class User implements IToModel{
+public class User {
     @JsonIgnore
     private final static Logger logger = LoggerFactory.getLogger(User.class);
     @JsonIgnore
@@ -31,7 +31,7 @@ public class User implements IToModel{
     @JsonIgnore
     private List<String> blackList;
     @JsonIgnore
-    private HashMap<String,Integer> needList;
+    private HashMap<String, Integer> needList;
 
     public User(Long userId, String token, String loginToken) {
         this.client = new Client(token, loginToken, 229);
@@ -66,33 +66,27 @@ public class User implements IToModel{
         }
         return this;
     }
+
     public User avoid(List<String> blackList) {
         this.blackList = blackList;
         return this;
     }
-    public User need(HashMap<String,Integer> needList) {
+
+    public User need(HashMap<String, Integer> needList) {
         this.needList = needList;
         return this;
     }
-    @Override
-    public UserModel toModel() {
-        UserModel userModel = new UserModel();
-        userModel.setUserId(userId);
-        userModel.setToken(client.getToken());
-        userModel.setLoginToken(client.getLoginToken());
-        return userModel;
-    }
 
     public void run(Integer timeout) {
-        List<OrderGood> orderGoods = shop.order(blackList,needList);
+        List<OrderGood> orderGoods = shop.order(blackList, needList);
         String delivery = client.precheck(shop, orderGoods);
         Order order = OrderBuilder.newOrder()
                 .setAddress(address)
                 .setShop(shop)
                 .setOrderGoods(orderGoods)
-                .setDelivery((new SimpleDateFormat("yyyyMMdd")).format(new Date()),delivery)
+                .setDelivery((new SimpleDateFormat("yyyyMMdd")).format(new Date()), delivery)
                 .build();
-        Long orderId = client.order(order,timeout);
+        Long orderId = client.order(order, timeout);
         logger.info("订单号：" + orderId);
     }
 

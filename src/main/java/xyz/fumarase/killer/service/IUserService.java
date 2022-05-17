@@ -9,11 +9,13 @@ import java.util.List;
  */
 
 public interface IUserService {
-    public List<User> getUser();
+    List<User> getUsers();
 
-    public Boolean addUser(Long userId, String captcha);
+    User getUser(Long userId);
 
-    public Boolean deleteUser(Long userId);
+    Boolean addUser(Long userId, String captcha);
+
+    Boolean deleteUser(Long userId);
 
 
 }

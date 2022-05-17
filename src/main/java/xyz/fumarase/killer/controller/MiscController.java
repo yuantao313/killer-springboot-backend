@@ -5,10 +5,17 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import xyz.fumarase.killer.model.ConfigModel;
+import xyz.fumarase.killer.response.BaseResponse;
 import xyz.fumarase.killer.service.MiscServiceImpl;
 
 import java.util.HashMap;
+import java.util.List;
 
+/**
+ * @author YuanTao
+ */
+@BaseResponse
 @RestController
 @CrossOrigin
 public class MiscController {
@@ -17,25 +24,22 @@ public class MiscController {
 
 
     @GetMapping("/captcha/{userId}")
-    public MyResponse captcha(@PathVariable("userId") Long userId) {
-        if (miscService.requestCaptcha(userId)) {
-            return new MyResponse(true);
-        } else {
-            return new MyResponse(false);
-        }
+    public Boolean captcha(@PathVariable("userId") Long userId) {
+        return miscService.requestCaptcha(userId);
     }
 
     @GetMapping("/school/{schoolId}")
-    public MyResponse school(@PathVariable("schoolId") Integer schoolId) {
-        HashMap<String, Object> data = new HashMap<>(1);
-        data.put("shops", miscService.getSchool(schoolId));
-        return new MyResponse(true, data);
+    public List<HashMap<String,Object>> school(@PathVariable("schoolId") Integer schoolId) {
+        return miscService.getSchool(schoolId);
     }
 
     @GetMapping("/config/{adminId}")
-    public MyResponse config(@PathVariable("adminId") Integer adminId) {
-        HashMap<String, Object> data = new HashMap<>(1);
-        data.put("config", miscService.getConfig(adminId));
-        return new MyResponse(true, data);
+    public ConfigModel config(@PathVariable("adminId") Integer adminId) {
+        return miscService.getConfig(adminId);
+    }
+
+    @GetMapping("/info")
+    public HashMap<String, Object> info() {
+        return miscService.getInfo();
     }
 }

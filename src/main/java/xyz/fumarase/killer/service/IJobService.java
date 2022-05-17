@@ -1,19 +1,23 @@
 package xyz.fumarase.killer.service;
 
+import io.swagger.models.auth.In;
 import xyz.fumarase.killer.model.JobModel;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author YuanTao
  */
 
 public interface IJobService {
-    public void addJob(JobModel jobModel);
+    boolean addJob(JobModel jobModel);
 
-    public void updateJob(String hash,JobModel jobModel);
-    public void deleteJob(String jobHash);
-    public List<JobModel> getJob();
-    public JobModel getJob(String hash);
-    public void trigJob(String hash);
+    boolean updateJob(Integer id,JobModel jobModel);
+    boolean updateJob(Integer id, Map<String,Object> value);
+
+    boolean deleteJob(Integer id);
+    List<JobModel> getJobs();
+    JobModel getJob(Integer id);
+    boolean trigJob(Integer id);
 }

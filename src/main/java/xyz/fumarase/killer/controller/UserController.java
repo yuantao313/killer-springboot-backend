@@ -2,13 +2,17 @@ package xyz.fumarase.killer.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import xyz.fumarase.killer.anlaiye.object.User;
+import xyz.fumarase.killer.response.BaseResponse;
 import xyz.fumarase.killer.service.UserServiceImpl;
 
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * @author YuanTao
  */
+@BaseResponse
 @RestController
 @CrossOrigin
 public class UserController {
@@ -16,31 +20,28 @@ public class UserController {
     public void setUserService(UserServiceImpl userService) {
         this.userService = userService;
     }
+
     private UserServiceImpl userService;
 
     @GetMapping("/user")
-    public MyResponse user() {
-        HashMap<String, Object> result = new HashMap<>();
-        result.put("users", userService.getUser());
-        return new MyResponse(true, result);
+    public List<User> getUsers() {
+        return userService.getUsers();
     }
 
+    @GetMapping("/user/{userId}")
+    public User getUser(@PathVariable("userId") Long userId) {
+        return userService.getUser(userId);
+    }
+
+
     @PostMapping("/user/{userId}")
-    public MyResponse user(@PathVariable("userId") Long userId, @RequestBody HashMap<String, String> param) {
-        if (userService.addUser(userId, param.get("captcha"))) {
-            return new MyResponse(true);
-        } else {
-            return new MyResponse(false);
-        }
+    public Boolean addUser(@PathVariable("userId") Long userId, @RequestBody HashMap<String, String> param) {
+        return userService.addUser(userId, param.get("captcha"));
     }
 
 
     @DeleteMapping("/user/{userId}")
-    public MyResponse user(@PathVariable("userId") Long userId) {
-        if (userService.deleteUser(userId)) {
-            return new MyResponse(true);
-        } else {
-            return new MyResponse(false);
-        }
+    public Boolean deleteUser(@PathVariable("userId") Long userId) {
+        return userService.deleteUser(userId);
     }
 }

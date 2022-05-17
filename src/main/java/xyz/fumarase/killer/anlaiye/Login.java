@@ -88,7 +88,6 @@ public class Login {
         while (true) {
             try {
                 String sign = sign(urlData, data);
-                System.out.println(sign);
                 Request.Builder rb = new Request.Builder();
                 RequestBody body = RequestBody.create(jsonMapper.writeValueAsString(data), okhttp3.MediaType.parse("application/json; charset=utf-8"));
                 rb.url("https://smsj.anlaiye.com.cn/smsj/v1/message/send_checkcode?" + urlData + "&sign=" + sign);

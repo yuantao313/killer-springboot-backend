@@ -1,17 +1,21 @@
 package xyz.fumarase.killer.controller;
 
+import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import xyz.fumarase.killer.response.BaseResponse;
 import xyz.fumarase.killer.model.JobModel;
 import xyz.fumarase.killer.service.JobServiceImpl;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
 /**
  * @author YuanTao
  */
+@BaseResponse
+@Api(tags={ "任务" })
 @RestController
 @CrossOrigin
 public class JobController {
@@ -24,40 +28,37 @@ public class JobController {
     }
 
     @GetMapping("/job")
-    public MyResponse getJobs() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("jobs", jobService.getJob());
-        return new MyResponse(true, map);
+    public List<JobModel> getJobs() {
+        return jobService.getJobs();
     }
 
     @GetMapping("/job/{hash}")
-    public MyResponse getJob(@PathVariable("hash") String hash) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("job", jobService.getJob(hash));
-        return new MyResponse(true, map);
+    public JobModel getJob(@PathVariable("hash") Integer id) {
+        return jobService.getJob(id);
     }
 
     @PostMapping("/job")
-    public MyResponse addJob(@RequestBody JobModel jobModel) {
-        jobService.addJob(jobModel.initHash());
-        return new MyResponse(true);
+    public Boolean addJob(@RequestBody JobModel jobModel) {
+        return jobService.addJob(jobModel);
     }
 
     @PutMapping("/job/{hash}")
-    public MyResponse updateJob(@PathVariable("hash") String hash, @RequestBody JobModel jobModel) {
-        jobService.updateJob(hash, jobModel);
-        return new MyResponse(true);
+    public boolean updateJob(@PathVariable("hash") Integer id, @RequestBody JobModel jobModel) {
+        return jobService.updateJob(id, jobModel);
+    }
+
+    @PatchMapping("/job/{hash}")
+    public boolean patchJob(@PathVariable("hash") Integer id, @RequestBody Map<String,Object> values) {
+        return jobService.updateJob(id, values);
     }
 
     @DeleteMapping("/job/{hash}")
-    public MyResponse deleteJob(@PathVariable("hash") String hash) {
-        jobService.deleteJob(hash);
-        return new MyResponse(true);
+    public boolean deleteJob(@PathVariable("hash") Integer id) {
+        return jobService.deleteJob(id);
     }
 
     @PostMapping("/job/{hash}/trig")
-    public MyResponse trigJob(@PathVariable("hash") String hash) {
-        jobService.trigJob(hash);
-        return new MyResponse(true);
+    public boolean trigJob(@PathVariable("hash") Integer id) {
+        return jobService.trigJob(id);
     }
 }

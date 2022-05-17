@@ -9,9 +9,11 @@ import java.util.List;
  * @author YuanTao
  */
 public interface IMiscService {
-    public Boolean requestCaptcha(Long userId);
+    Boolean requestCaptcha(Long userId);
 
     List<HashMap<String, Object>> getSchool(Integer schoolId);
 
     ConfigModel getConfig(Integer id);
+
+    HashMap<String, Object> getInfo();
 }
