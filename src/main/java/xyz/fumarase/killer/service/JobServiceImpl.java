@@ -1,6 +1,8 @@
 package xyz.fumarase.killer.service;
+
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +20,8 @@ import java.util.Map;
  */
 @Service("JobService")
 @NoArgsConstructor
-@AllArgsConstructor
+@Slf4j
 public class JobServiceImpl implements IJobService {
-    private static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
-
 
     private Manager manager;
 
@@ -33,9 +33,8 @@ public class JobServiceImpl implements IJobService {
 
     @Override
     public boolean addJob(JobModel jobModel) {
-        logger.info("添加任务：" + jobModel.toString());
+        log.info("添加任务：" + jobModel.toString());
         try {
-
             manager.addJob(jobModel);
             return true;
         } catch (Exception e) {

@@ -2,6 +2,7 @@ package xyz.fumarase.killer.anlaiye.object;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.fumarase.killer.anlaiye.Client;
@@ -17,6 +18,7 @@ import java.util.List;
  * @author YuanTao
  */
 @Data
+@Slf4j
 public class User {
     @JsonIgnore
     private final static Logger logger = LoggerFactory.getLogger(User.class);
@@ -45,6 +47,7 @@ public class User {
                 if (shop.isOpen()) {
                     return this;
                 } else {
+                    log.info("店铺未开放,1s后重试");
                     Thread.sleep(1000);
                 }
             } catch (Exception e) {
@@ -77,7 +80,7 @@ public class User {
         return this;
     }
 
-    public void run(Integer timeout) {
+    public boolean run(Integer timeout) {
         List<OrderGood> orderGoods = shop.order(blackList, needList);
         String delivery = client.precheck(shop, orderGoods);
         Order order = OrderBuilder.newOrder()
@@ -87,7 +90,12 @@ public class User {
                 .setDelivery((new SimpleDateFormat("yyyyMMdd")).format(new Date()), delivery)
                 .build();
         Long orderId = client.order(order, timeout);
-        logger.info("订单号：" + orderId);
+        if (orderId == -1L) {
+            logger.info("抢购失败");
+            return false;
+        } else {
+            logger.info("订单号：" + orderId);
+            return true;
+        }
     }
-
 }

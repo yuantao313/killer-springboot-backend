@@ -1,6 +1,5 @@
 package xyz.fumarase.killer.anlaiye.crypto;
 
-
 import java.nio.charset.StandardCharsets;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -10,12 +9,15 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class Phone {
     private static final String KEY = "q6%WF*1SvQx^YWzK";
+
     public static String decrypt(String paramString) {
         return decrypt(paramString, KEY);
     }
+
     public static String encrypt(String paramString) {
         return encrypt(paramString, KEY);
     }
+
     public static String decrypt(String paramString, String paramString2) {
         try {
             byte[] arrayOfByte2 = unHex(paramString);
@@ -23,7 +25,7 @@ public class Phone {
             SecretKeySpec secretKeySpec = new SecretKeySpec(paramString2.getBytes(StandardCharsets.UTF_8), "AES");
             cipher.init(2, secretKeySpec);
             byte[] arrayOfByte1 = cipher.doFinal(arrayOfByte2);
-            String str = new String(arrayOfByte1, "utf-8");
+            String str = new String(arrayOfByte1, StandardCharsets.UTF_8);
             return str.replace("\000", "");
         } catch (Exception exception) {
             return "";
@@ -44,14 +46,11 @@ public class Phone {
 
     private static String hex(byte[] paramArrayOfbyte) {
         StringBuilder stringBuilder = new StringBuilder();
-        for (byte b = 0; b < paramArrayOfbyte.length; b++) {
-            String str1 = Integer.toHexString(paramArrayOfbyte[b] & 0xFF);
+        for (byte value : paramArrayOfbyte) {
+            String str1 = Integer.toHexString(value & 0xFF);
             String str2 = str1;
             if (str1.length() == 1) {
-                StringBuilder stringBuilder1 = new StringBuilder();
-                stringBuilder1.append("0");
-                stringBuilder1.append(str1);
-                str2 = stringBuilder1.toString();
+                str2 = "0" + str1;
             }
             stringBuilder.append(str2);
         }
@@ -64,11 +63,8 @@ public class Phone {
         for (byte b = 0; b < i; b++) {
             int j = b * 2;
             int k = j + 1;
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("0x");
-            stringBuilder.append(paramString.substring(j, k));
-            stringBuilder.append(paramString.substring(k, k + 1));
-            arrayOfByte[b] = Byte.valueOf((byte)Integer.decode(stringBuilder.toString()).intValue()).byteValue();
+            String stringBuilder = "0x" + paramString.substring(j, k) + paramString.charAt(k);
+            arrayOfByte[b] = (byte) Integer.decode(stringBuilder).intValue();
         }
         return arrayOfByte;
     }

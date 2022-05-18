@@ -2,7 +2,6 @@ package xyz.fumarase.killer.anlaiye;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.Getter;
@@ -21,7 +20,7 @@ import java.util.*;
  * @author YuanTao
  */
 @Getter
-public class Client implements IClient {
+public class Client {
     private final static Logger logger = LoggerFactory.getLogger(Client.class);
     private final OkHttpClient httpClient = new OkHttpClient();
     private final static JsonMapper jsonMapper = new JsonMapper();
@@ -193,6 +192,14 @@ public class Client implements IClient {
         return shop;
     }
 
+    public boolean isShopOpen(int shopId) {
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("shop_id", shopId);
+        data.put("target", "merchants");
+        JsonNode shopNode = get("pub/shop/goodsV2", data).get("data");
+        return shopNode.get("shop_detail").get("is_open").asInt() == 1;
+    }
+
     public List<Address> getAddress() {
         HashMap<String, Object> data = new HashMap<>();
         data.put("page", 1);
@@ -226,6 +233,7 @@ public class Client implements IClient {
     }
 
     public Long order(Order order, Integer timeout) {
+        //todo 将超时等工作与client解耦，移动到user
         if (order.getGoods().isEmpty()) {
             return -1L;
         }
@@ -242,6 +250,8 @@ public class Client implements IClient {
                     logger.info("下单失败,1s后重试");
                     Thread.sleep(1000);
                     timeout -= 1;
+                }else{
+                    return -1L;
                 }
             } catch (Exception e) {
                 e.printStackTrace();

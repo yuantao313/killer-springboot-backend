@@ -3,16 +3,16 @@ It is still developing.
 ## Known issues
 
 - <s>A job that is impossible to be finished will stay in a dead loop.</s>
-> Fix method: Add a timeout param.
-- Shop.isOpen is not implemented, which will always return true.
-> Fix method: Import redis and cache it.
+> Fixed: Added a break statement.
+- <s>Shop.isOpen is not implemented, which will always return true.</s>
+> Fixed: Implemented in Client but without cache.
 - Class Manager is coupled with JobModel.
-> Fix method: Rewrite Manager.runJob as a standalone function.
+> Fixed: Coupling is not a shameful thing.
 > 
 ## Todo
-- Make a job running state dashboard.
-- Make a reporter connected with any platform like Dingtalk.
-- Embed checker. (Need frontend support)
-- Order cache.
-- Arguments configuration.
-- Data source.
+- [x] Make a job running state dashboard.
+- [ ] Make a reporter connected with any platform like Dingtalk.
+- [ ] Embed checker. (Need frontend support)
+- [ ] Order cache.
+- [ ] Arguments configuration.
+- [x] Data source changed to MySQL.

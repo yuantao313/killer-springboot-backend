@@ -1,18 +1,13 @@
 package xyz.fumarase.killer.anlaiye;
 
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import lombok.Data;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import lombok.NoArgsConstructor;
-import okhttp3.Interceptor;
+import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
-import org.quartz.impl.StdSchedulerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.scheduling.config.ScheduledTask;
+import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
 import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.anlaiye.object.UserBuilder;
 import xyz.fumarase.killer.mapper.HistoryMapper;
@@ -21,11 +16,9 @@ import xyz.fumarase.killer.mapper.UserMapper;
 import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
 import xyz.fumarase.killer.model.UserModel;
-import xyz.fumarase.killer.service.HistoryServiceImpl;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -33,10 +26,18 @@ import java.util.*;
  */
 @Component
 @NoArgsConstructor
-public class Manager implements org.quartz.Job {
-    private Scheduler scheduler;
-    private final static Logger logger = LoggerFactory.getLogger(Manager.class);
+@Slf4j
+public class Manager extends QuartzJobBean {
+    //todo 重新构建ManagerFactory
 
+    private Scheduler scheduler;
+
+    @Autowired
+    public void setSchedulerFactoryBean(SchedulerFactoryBean schedulerFactoryBean) {
+        this.schedulerFactoryBean = schedulerFactoryBean;
+    }
+
+    private SchedulerFactoryBean schedulerFactoryBean;
     private UserMapper userMapper;
 
     @Autowired
@@ -52,10 +53,12 @@ public class Manager implements org.quartz.Job {
     }
 
     private HistoryMapper historyMapper;
+
     @Autowired
     public void setHistoryMapper(HistoryMapper historyMapper) {
         this.historyMapper = historyMapper;
     }
+
     public void addUser(UserModel userModel) {
         userMapper.insert(userModel);
     }
@@ -79,12 +82,12 @@ public class Manager implements org.quartz.Job {
     @PostConstruct
     public void afterConstruct() {
         try {
-            this.scheduler = StdSchedulerFactory.getDefaultScheduler();
+            this.scheduler = schedulerFactoryBean.getScheduler();
             for (JobModel jobModel : jobMapper.selectList(null)) {
-                logger.info("从数据库装配任务：{}", jobModel);
+                log.info("从数据库装配任务：{}", jobModel);
                 loadJob(jobModel);
             }
-            logger.info("装配任务完成,共{}个任务", jobMapper.selectCount(null));
+            log.info("装配任务完成,共{}个任务", jobMapper.selectCount(null));
             scheduler.start();
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,68 +95,68 @@ public class Manager implements org.quartz.Job {
     }
 
     public void addJob(JobModel jobModel) {
-        logger.info("添加任务：{}", jobModel);
+        log.info("添加任务：{}", jobModel);
         try {
             jobMapper.insert(jobModel);
             loadJob(jobModel);
-            logger.info("添加任务成功");
+            log.info("添加任务成功");
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("添加任务失败{}", e.getMessage());
+            log.error("添加任务失败{}", e.getMessage());
         }
     }
 
     public void loadJob(JobModel jobModel) {
-        logger.info("装配任务：{}", jobModel);
+        log.info("装配任务：{}", jobModel);
         try {
             JobDetail jobDetail = JobBuilder.newJob(Manager.class)
                     .withIdentity(String.valueOf(jobModel.getId()), "JOB")
                     .build();
             jobDetail.getJobDataMap().put("jobId", jobModel.getId());
             Trigger trigger = TriggerBuilder.newTrigger()
-                    .withIdentity(String.valueOf(jobModel.getHash()), "TRIGGER")
+                    .withIdentity(String.valueOf(jobModel.getId()), "TRIGGER")
                     .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(jobModel.getHour(), jobModel.getMinute()))
                     .build();
             scheduler.scheduleJob(jobDetail, trigger);
-            logger.info("成功：{}", jobModel);
+            log.info("成功：{}", jobModel);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("失败：{}", e.getMessage());
+            log.error("失败：{}", e.getMessage());
         }
     }
 
     public void deleteJob(int jobId) {
-        logger.info("删除任务：{}", jobId);
+        log.info("删除任务：{}", jobId);
         try {
             jobMapper.deleteById(jobId);
             scheduler.deleteJob(new JobKey(String.valueOf(jobId), "JOB"));
-            logger.info("删除任务成功：{}", jobId);
+            log.info("删除任务成功：{}", jobId);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("删除任务失败：{}", e.getMessage());
+            log.error("删除任务失败：{}", e.getMessage());
         }
     }
 
     public void trigJob(int jobId) {
-        logger.info("触发任务：{}", jobId);
+        log.info("触发任务：{}", jobId);
         try {
             scheduler.triggerJob(new JobKey(String.valueOf(jobId), "JOB"));
-            logger.info("触发任务成功：{}", jobId);
+            log.info("触发任务成功：{}", jobId);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("触发任务失败：{}", e.getMessage());
+            log.error("触发任务失败：{}", e.getMessage());
         }
     }
 
     public void updateJob(Integer jobId, JobModel jobModel) {
-        logger.info("更新任务：{}", jobModel);
+        log.info("更新任务：{}", jobModel);
         try {
             deleteJob(jobId);
             addJob(jobModel);
-            logger.info("更新任务成功：{}", jobModel);
+            log.info("更新任务成功：{}", jobModel);
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("更新任务失败：{}", e.getMessage());
+            log.error("更新任务失败：{}", e.getMessage());
         }
     }
 
@@ -177,26 +180,43 @@ public class Manager implements org.quartz.Job {
         JobModel jobModel = jobMapper.selectById(jobId);
         HistoryModel historyModel = new HistoryModel();
         historyModel.setJobId(jobModel.getId());
-        historyModel.setDatetime(new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(System.currentTimeMillis()));
+        historyModel.setStatus("RUNNING");
         historyMapper.insert(historyModel);
-        getUser(jobModel.getSource())
+        UpdateWrapper<HistoryModel> uw = (new UpdateWrapper<>());
+        uw.eq("id", historyModel.getId());
+        boolean isSuccess = getUser(jobModel.getSource())
                 .setShop(jobModel.getShopId())
                 .avoid(jobModel.getBlackList())
                 .need(jobModel.getNeedList())
                 .setTarget(jobModel.getTarget())
                 .waitForShop()
                 .run(jobModel.getTimeout());
+        if (isSuccess) {
+            historyMapper.update(historyModel, uw.set("status", "SUCCESS"));
+        } else {
+            historyMapper.update(historyModel, uw.set("status", "FAILED"));
+        }
     }
 
     @Override
-    public void execute(JobExecutionContext context) {
+    protected void executeInternal(JobExecutionContext context) {
         JobDataMap jobDataMap = context.getJobDetail().getJobDataMap();
         int jobId = (int) jobDataMap.get("jobId");
         runJob(jobId);
     }
 
     public List<JobModel> getJobs() {
-        return jobMapper.selectList(null);
+        List<JobModel> jobModels = jobMapper.selectList(null);
+        try {
+            for (JobModel jobModel : jobModels) {
+                Trigger trigger = scheduler.getTrigger(new TriggerKey(String.valueOf(jobModel.getId()), "TRIGGER"));
+                assert trigger != null;
+                jobModel.setNextRunTime(trigger.getNextFireTime());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return jobModels;
     }
 
     public JobModel getJob(int id) {

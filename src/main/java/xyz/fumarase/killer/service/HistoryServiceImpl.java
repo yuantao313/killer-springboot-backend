@@ -16,7 +16,6 @@ import java.util.List;
  */
 @Service("HistoryService")
 @NoArgsConstructor
-@AllArgsConstructor
 public class HistoryServiceImpl implements IHistoryService {
     private HistoryMapper historyMapper;
 
@@ -25,13 +24,13 @@ public class HistoryServiceImpl implements IHistoryService {
         this.historyMapper = historyMapper;
     }
 
-    private Manager manager;
+    /*private Manager manager;
 
     @Autowired
     public void setManager(Manager manager) {
         this.manager = manager;
     }
-
+*/
     @Override
     public List<HistoryModel> getHistories() {
         return historyMapper.selectList(null);

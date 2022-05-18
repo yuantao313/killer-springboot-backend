@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye;
+package xyz.fumarase.killer.anlaiye.login;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,12 +10,15 @@ import org.springframework.util.DigestUtils;
 import xyz.fumarase.killer.anlaiye.crypto.GraphToken;
 import xyz.fumarase.killer.anlaiye.crypto.Password;
 import xyz.fumarase.killer.anlaiye.crypto.Phone;
-
+import xyz.fumarase.killer.anlaiye.login.exception.CaptchaInvalidException;
+import xyz.fumarase.killer.anlaiye.login.exception.CaptchaTimeoutException;
+import xyz.fumarase.killer.anlaiye.login.exception.LoginUnsafeException;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Objects;
 
 /**
  * @author YuanTao
@@ -63,11 +66,11 @@ public class Login {
         JsonNode loginResp = jsonMapper.readTree(Objects.requireNonNull(httpClient.newCall(request).execute().body()).string());
         if (!loginResp.get("result").asBoolean()) {
             if (loginResp.get("flag").asInt() == -611) {
-                System.out.println("invalid");
+                throw new CaptchaInvalidException();
             } else if (loginResp.get("flag").asInt() == -616) {
-                System.out.println("unsafe");
-            }else if(loginResp.get("flag").asInt()==-1){
-                System.out.println("timeout");
+                throw new LoginUnsafeException();
+            } else if (loginResp.get("flag").asInt() == -1) {
+                throw new CaptchaTimeoutException();
             }
             return null;
         } else {

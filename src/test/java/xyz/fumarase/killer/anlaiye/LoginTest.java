@@ -1,8 +1,7 @@
 package xyz.fumarase.killer.anlaiye;
 
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import xyz.fumarase.killer.anlaiye.login.Login;
 
 class LoginTest {
 

@@ -3,7 +3,6 @@ package xyz.fumarase.killer.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import xyz.fumarase.killer.anlaiye.object.User;
-import xyz.fumarase.killer.response.BaseResponse;
 import xyz.fumarase.killer.service.UserServiceImpl;
 
 import java.util.HashMap;
@@ -12,7 +11,6 @@ import java.util.List;
 /**
  * @author YuanTao
  */
-@BaseResponse
 @RestController
 @CrossOrigin
 public class UserController {
@@ -35,10 +33,9 @@ public class UserController {
 
 
     @PostMapping("/user/{userId}")
-    public Boolean addUser(@PathVariable("userId") Long userId, @RequestBody HashMap<String, String> param) {
+    public Boolean addUser(@PathVariable("userId") Long userId, @RequestBody HashMap<String, String> param) throws Exception {
         return userService.addUser(userId, param.get("captcha"));
     }
-
 
     @DeleteMapping("/user/{userId}")
     public Boolean deleteUser(@PathVariable("userId") Long userId) {

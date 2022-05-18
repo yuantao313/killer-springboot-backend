@@ -51,7 +51,7 @@ public class Password {
         return paramString.replace("+", "__2B").replace("/", "__2F").replace("=", "");
     }
 
-    public static String encrypt2(String paramString1, String paramString2,String paramString3) throws Exception {
+    public static String encrypt2(String paramString1, String paramString2, String paramString3) throws Exception {
         if (paramString1 != null) {
             try {
                 Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");

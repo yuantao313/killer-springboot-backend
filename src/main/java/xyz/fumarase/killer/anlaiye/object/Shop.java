@@ -1,6 +1,7 @@
 package xyz.fumarase.killer.anlaiye.object;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.fumarase.killer.anlaiye.Client;
@@ -9,10 +10,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * @author YuanTao
+ */
 @Data
+@Slf4j
 public class Shop {
-    private final static Logger logger = LoggerFactory.getLogger(Shop.class);
-
     private static final Client client = new Client();
     private Integer shopId;
     private String shopName;
@@ -27,8 +30,7 @@ public class Shop {
     }
 
     public Boolean isOpen() {
-        //todo cache
-        return true;
+        return client.isShopOpen(this.shopId);
     }
 
     public Boolean isSelfTake() {
@@ -42,22 +44,22 @@ public class Shop {
         }
         List<Good> goods = new ArrayList<>();
         //step1
-        logger.info("开始按照黑名单排除");
-        logger.info("黑名单: {}", blackList);
+        log.info("开始按照黑名单排除");
+        log.info("黑名单: {}", blackList);
         for (Long goodId : this.goods.keySet()) {
             Good good = this.goods.get(goodId);
             String goodBlackWord = good.belongTo(blackList);
             if (goodBlackWord != null) {
-                logger.info("{} 被排除,关键词：{}", good.getName(), goodBlackWord);
+                log.info("{} 被排除,关键词：{}", good.getName(), goodBlackWord);
             } else {
-                logger.info("{} 被添加到待选列表", good.getName());
+                log.info("{} 被添加到待选列表", good.getName());
                 goods.add(good);
             }
         }
-        logger.info("共计{}种商品", goods.size());
+        log.info("共计{}种商品", goods.size());
         //step2
-        logger.info("开始按照需求添加");
-        logger.info("需求: {}", needList);
+        log.info("开始按照需求添加");
+        log.info("需求: {}", needList);
         HashMap<Long, OrderGood> shoppingCart = new HashMap<>(size);
         HashMap<String, Integer> myNeedList = new HashMap<>(needList.size());
         boolean added;
@@ -71,12 +73,12 @@ public class Shop {
                 if (keyWord != null) {
                     limitA = true;
                     limitB = true;
-                    logger.info("准备添加{},关键词:{}", good.getName(), keyWord);
+                    log.info("准备添加{},关键词:{}", good.getName(), keyWord);
                     if (myNeedList.getOrDefault(keyWord, 0) >= needList.get(keyWord)) {
                         limitA = false;
                     }
                     if (good.hasLimit() && shoppingCart.getOrDefault(goodId, OrderGood.EMPTY_ORDER_GOOD).getNumber() >= good.getLimit()) {
-                        logger.info("{}已达到限购上限", good.getName());
+                        log.info("{}已达到限购上限", good.getName());
                         limitB = false;
                     }
                     if (limitA && limitB) {
@@ -87,13 +89,13 @@ public class Shop {
                         } else {
                             shoppingCart.put(goodId, good.toOrder());
                         }
-                        logger.info("已添加{}:{}/{}", keyWord, myNeedList.get(keyWord), needList.get(keyWord));
+                        log.info("已添加{}:{}/{}", keyWord, myNeedList.get(keyWord), needList.get(keyWord));
                     }
                 }
             }
         }
         while (added);
-        logger.info("购物车总计{}件商品", shoppingCart.size());
+        log.info("购物车总计{}件商品", shoppingCart.size());
         return new ArrayList<>(shoppingCart.values());
     }
 }

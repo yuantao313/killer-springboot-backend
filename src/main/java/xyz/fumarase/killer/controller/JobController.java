@@ -3,7 +3,6 @@ package xyz.fumarase.killer.controller;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import xyz.fumarase.killer.response.BaseResponse;
 import xyz.fumarase.killer.model.JobModel;
 import xyz.fumarase.killer.service.JobServiceImpl;
 
@@ -14,7 +13,6 @@ import java.util.Map;
 /**
  * @author YuanTao
  */
-@BaseResponse
 @Api(tags={ "任务" })
 @RestController
 @CrossOrigin

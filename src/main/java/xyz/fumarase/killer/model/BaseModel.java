@@ -3,5 +3,5 @@ package xyz.fumarase.killer.model;
 /**
  * @author YuanTao
  */
-public abstract class Model {
+public abstract class BaseModel {
 }

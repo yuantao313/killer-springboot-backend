@@ -13,7 +13,7 @@ public interface IUserService {
 
     User getUser(Long userId);
 
-    Boolean addUser(Long userId, String captcha);
+    boolean addUser(Long userId, String captcha) throws Exception;
 
     Boolean deleteUser(Long userId);
 

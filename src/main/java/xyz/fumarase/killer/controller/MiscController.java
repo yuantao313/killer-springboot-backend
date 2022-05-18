@@ -5,8 +5,6 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
-import xyz.fumarase.killer.model.ConfigModel;
-import xyz.fumarase.killer.response.BaseResponse;
 import xyz.fumarase.killer.service.MiscServiceImpl;
 
 import java.util.HashMap;
@@ -15,13 +13,16 @@ import java.util.List;
 /**
  * @author YuanTao
  */
-@BaseResponse
 @RestController
 @CrossOrigin
 public class MiscController {
-    @Autowired
+
     private MiscServiceImpl miscService;
 
+    @Autowired
+    public void setMiscService(MiscServiceImpl miscService) {
+        this.miscService = miscService;
+    }
 
     @GetMapping("/captcha/{userId}")
     public Boolean captcha(@PathVariable("userId") Long userId) {
@@ -29,13 +30,8 @@ public class MiscController {
     }
 
     @GetMapping("/school/{schoolId}")
-    public List<HashMap<String,Object>> school(@PathVariable("schoolId") Integer schoolId) {
+    public List<HashMap<String, Object>> school(@PathVariable("schoolId") Integer schoolId) {
         return miscService.getSchool(schoolId);
-    }
-
-    @GetMapping("/config/{adminId}")
-    public ConfigModel config(@PathVariable("adminId") Integer adminId) {
-        return miscService.getConfig(adminId);
     }
 
     @GetMapping("/info")

@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * @author YuanTao
+ */
 @Data
 public class Order {
     private String target;
