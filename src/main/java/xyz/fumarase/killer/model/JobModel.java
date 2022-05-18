@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
-import org.springframework.data.annotation.TypeAlias;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -19,7 +18,6 @@ import java.util.List;
 @Component
 @Data
 @TableName(value = "job", autoResultMap = true)
-@TypeAlias("Job")
 public class JobModel extends BaseModel {
     Long source;
     Long target;

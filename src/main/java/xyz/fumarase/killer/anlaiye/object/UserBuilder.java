@@ -14,7 +14,6 @@ public class UserBuilder {
         return new UserBuilder();
     }
 
-
     public UserBuilder setUserId(Long userId) {
         this.userId = userId;
         return this;

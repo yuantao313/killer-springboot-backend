@@ -24,13 +24,6 @@ public class HistoryServiceImpl implements IHistoryService {
         this.historyMapper = historyMapper;
     }
 
-    /*private Manager manager;
-
-    @Autowired
-    public void setManager(Manager manager) {
-        this.manager = manager;
-    }
-*/
     @Override
     public List<HistoryModel> getHistories() {
         return historyMapper.selectList(null);

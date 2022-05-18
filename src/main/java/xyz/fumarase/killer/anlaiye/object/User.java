@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.fumarase.killer.anlaiye.Client;
 import xyz.fumarase.killer.anlaiye.crypto.Phone;
-import xyz.fumarase.killer.model.UserModel;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

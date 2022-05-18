@@ -1,6 +1,7 @@
 package xyz.fumarase.killer.anlaiye.object;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
  * @author YuanTao
  */
 @Data
+@AllArgsConstructor
 public class Good {
     String name;
     Long goodId;
@@ -24,25 +26,20 @@ public class Good {
         goodId = goodNode.get("sku_list").get(0).get("sku_id").asLong();
     }
 
-    public Good(String name, Long goodId, Double price, Integer limit, String tag) {
-        this.name = name;
-        this.goodId = goodId;
-        this.price = price;
-        this.limit = limit;
-        this.tag = tag;
-    }
 
     public String belongTo(List<String> keyWords) {
         for (String keyWord : keyWords) {
-            if (name.contains(keyWord) || tag.contains(keyWord)) {
-                return keyWord;
+            List<String> splitKeyWords = List.of(keyWord.split("\\|"));
+            for (String splitKeyWord : splitKeyWords) {
+                if (getFullName().contains(splitKeyWord)) {
+                    return keyWord;
+                }
             }
         }
         return null;
     }
 
     public Boolean hasLimit() {
-
         return limit != null && limit > 0;
     }
 
@@ -61,6 +58,6 @@ public class Good {
     }
 
     public String getFullName() {
-        return tag + "-" + name;
+        return (tag + "-" + name).replaceAll("\\s*", "");
     }
 }

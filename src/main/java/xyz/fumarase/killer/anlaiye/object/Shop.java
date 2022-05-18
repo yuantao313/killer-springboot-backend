@@ -2,8 +2,6 @@ package xyz.fumarase.killer.anlaiye.object;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import xyz.fumarase.killer.anlaiye.Client;
 
 import java.util.ArrayList;

@@ -137,11 +137,11 @@ public class Manager extends QuartzJobBean {
         }
     }
 
-    public void trigJob(int jobId) {
-        log.info("触发任务：{}", jobId);
+    public void trigJob(int id) {
+        log.info("手动触发任务：{}", id);
         try {
-            scheduler.triggerJob(new JobKey(String.valueOf(jobId), "JOB"));
-            log.info("触发任务成功：{}", jobId);
+            runJob(id);
+            log.info("触发任务成功：{}", id);
         } catch (Exception e) {
             e.printStackTrace();
             log.error("触发任务失败：{}", e.getMessage());
@@ -181,6 +181,12 @@ public class Manager extends QuartzJobBean {
         HistoryModel historyModel = new HistoryModel();
         historyModel.setJobId(jobModel.getId());
         historyModel.setStatus("RUNNING");
+        StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+        if("trigJob".equals(elements[2].getMethodName())) {
+            historyModel.setIsManual(true);
+        }else if("executeInternal".equals(elements[2].getMethodName())) {
+            historyModel.setIsManual(false);
+        }
         historyMapper.insert(historyModel);
         UpdateWrapper<HistoryModel> uw = (new UpdateWrapper<>());
         uw.eq("id", historyModel.getId());

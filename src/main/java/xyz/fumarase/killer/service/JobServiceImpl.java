@@ -84,8 +84,7 @@ public class JobServiceImpl implements IJobService {
     @Override
     public boolean trigJob(Integer id) {
         try {
-            //manager.trigJob(id);
-            manager.runJob(id);
+            manager.trigJob(id);
             return true;
         } catch (Exception e) {
             e.printStackTrace();

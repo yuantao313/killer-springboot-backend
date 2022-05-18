@@ -21,4 +21,6 @@ public class HistoryModel extends BaseModel {
     private Boolean checked;
     private String time;
     private String status;
+    @TableField("is_manual")
+    private Boolean isManual;
 }
