@@ -1,10 +1,9 @@
 package xyz.fumarase.killer.service;
 
-import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import xyz.fumarase.killer.anlaiye.Client;
+import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.login.Login;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;

@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye;
+package xyz.fumarase.killer.anlaiye.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -11,6 +11,10 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
+import xyz.fumarase.killer.anlaiye.client.exception.EmptyOrderException;
+import xyz.fumarase.killer.anlaiye.client.exception.OrderTimeoutException;
+import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.*;
 
 import java.io.IOException;
@@ -20,15 +24,15 @@ import java.util.*;
  * @author YuanTao
  */
 @Getter
-public class Client {
+public class Client implements IPublicApi, IPrivateApi {
     private final static Logger logger = LoggerFactory.getLogger(Client.class);
     private final OkHttpClient httpClient = new OkHttpClient();
     private final static JsonMapper jsonMapper = new JsonMapper();
     private final Integer schoolId;
     private String token;
     private String loginToken;
-    private final static String apiRoot = "https://web-agent.anlaiye.com/miniprogram";
-    private final static String appVersion = "8.1.3";
+    private final static String API_ROOT = "https://web-agent.anlaiye.com/miniprogram";
+    private final static String APP_VERSION = "8.1.3";
 
     public Client() {
         this(null, null, 110);
@@ -62,7 +66,7 @@ public class Client {
      */
     private HashMap<String, Object> wrap(HashMap<String, Object> data, Boolean anonymous) {
 
-        data.put("app_version", appVersion);
+        data.put("app_version", APP_VERSION);
         data.put("time", System.currentTimeMillis());
         if (!anonymous && token != null && loginToken != null) {
             data.put("token", token);
@@ -79,7 +83,6 @@ public class Client {
      * @return 请求结果
      */
     private synchronized JsonNode get(String action, HashMap<String, Object> data) {
-
         return get(action, "/agent/get", data, true);
     }
 
@@ -96,7 +99,7 @@ public class Client {
 
         data = wrap(data, anonymous);
         Request.Builder rb = new Request.Builder();
-        HttpUrl.Builder urlb = Objects.requireNonNull(HttpUrl.parse(apiRoot + entrypoint)).newBuilder();
+        HttpUrl.Builder urlb = Objects.requireNonNull(HttpUrl.parse(API_ROOT + entrypoint)).newBuilder();
         for (String key : data.keySet()) {
             urlb.addQueryParameter(key, data.get(key).toString());
         }
@@ -116,7 +119,7 @@ public class Client {
      * @param data   请求的数据
      * @return 请求结果
      */
-    private synchronized JsonNode post(String action, HashMap<String, Object> data) {
+    private synchronized JsonNode post(String action, HashMap<String, Object> data) throws TokenInvalidException {
 
         return post(action, "/agent/post", data, false);
     }
@@ -130,20 +133,26 @@ public class Client {
      * @param anonymous  是否匿名
      * @return 请求结果
      */
-    private synchronized JsonNode post(String action, String entrypoint, HashMap<String, Object> data, Boolean anonymous) {
-
+    private synchronized JsonNode post(String action, String entrypoint, HashMap<String, Object> data, Boolean anonymous) throws TokenInvalidException {
         data = wrap(data, anonymous);
         data.put("action", action);
+        JsonNode result = null;
         try {
             Request.Builder rb = new Request.Builder();
-            HttpUrl.Builder urlb = Objects.requireNonNull(HttpUrl.parse(apiRoot + entrypoint)).newBuilder();
+            HttpUrl.Builder urlb = Objects.requireNonNull(HttpUrl.parse(API_ROOT + entrypoint)).newBuilder();
             RequestBody body = RequestBody.create(jsonMapper.writeValueAsString(data), okhttp3.MediaType.parse("application/json; charset=utf-8"));
             Request request = rb.url(urlb.build()).post(body).build();
-            return jsonMapper.readTree(Objects.requireNonNull(httpClient.newCall(request).execute().body()).string());
+            result = jsonMapper.readTree(Objects.requireNonNull(httpClient.newCall(request).execute().body()).string());
+
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         }
+        if (!result.get("result").asBoolean()) {
+            if (result.get("flag").asInt() == -641) {
+                throw new TokenInvalidException();
+            }
+        }
+        return result;
     }
 
     /**
@@ -159,7 +168,12 @@ public class Client {
         data.put("target", "merchants");
         data.put("page", 1);
         data.put("pageSize", 1000);
-        JsonNode result = post("pub/shop/list", data);
+        JsonNode result = null;
+        try {
+            result = post("pub/shop/list", data);
+        } catch (TokenInvalidException ignored) {
+
+        }
         List<HashMap<String, Object>> shops = new ArrayList<>();
         for (JsonNode j : result.get("data")) {
             HashMap<String, Object> shop = new HashMap<>(2);
@@ -200,7 +214,7 @@ public class Client {
         return shopNode.get("shop_detail").get("is_open").asInt() == 1;
     }
 
-    public List<Address> getAddress() {
+    public List<Address> getAddress() throws TokenInvalidException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("page", 1);
         data.put("pageSize", 1000);
@@ -215,7 +229,10 @@ public class Client {
         }
     }
 
-    public String precheck(Shop shop, List<OrderGood> orderGoods) {
+    public String precheck(Shop shop, List<OrderGood> orderGoods) throws ClientException {
+        if (orderGoods.size() == 0) {
+            throw new EmptyOrderException();
+        }
         HashMap<String, Object> data = new HashMap<>();
         data.put("target", "order_center");
         data.put("school_id", schoolId);
@@ -232,7 +249,7 @@ public class Client {
         }
     }
 
-    public Long order(Order order, Integer timeout) {
+    public Long order(Order order, Integer timeout) throws ClientException {
         //todo 将超时等工作与client解耦，移动到user
         if (order.getGoods().isEmpty()) {
             return -1L;
@@ -250,10 +267,10 @@ public class Client {
                     logger.info("下单失败,1s后重试");
                     Thread.sleep(1000);
                     timeout -= 1;
-                }else{
-                    return -1L;
+                } else {
+                    throw new OrderTimeoutException();
                 }
-            } catch (Exception e) {
+            } catch (InterruptedException | JsonProcessingException e) {
                 e.printStackTrace();
             }
         }

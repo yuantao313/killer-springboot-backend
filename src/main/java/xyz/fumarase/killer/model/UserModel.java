@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
+
 /**
  * @author YuanTao
  */
@@ -21,7 +23,7 @@ public class UserModel extends BaseModel {
     private String loginToken;
     private String token;
     @TableField("add_time")
-    private String addTime;
-    @TableField("update_time")
-    private String updateTime;
+    private Date addTime;
+    @TableField(value = "update_time",update = "now()")
+    private Date updateTime;
 }

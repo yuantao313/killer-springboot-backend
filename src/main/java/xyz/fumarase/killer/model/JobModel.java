@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +37,7 @@ public class JobModel extends BaseModel {
     String info;
     @TableField("add_time")
     private Date addTime;
-    @TableField("update_time")
+    @TableField(value = "update_time",update = "now()")
     private Date updateTime;
     @TableField(exist = false)
     private Date nextRunTime;

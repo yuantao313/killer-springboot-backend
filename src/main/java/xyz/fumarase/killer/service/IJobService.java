@@ -13,7 +13,7 @@ import java.util.Map;
 public interface IJobService {
     boolean addJob(JobModel jobModel);
 
-    boolean updateJob(Integer id,JobModel jobModel);
+    boolean updateJob(JobModel jobModel);
     boolean updateJob(Integer id, Map<String,Object> value);
 
     boolean deleteJob(Integer id);

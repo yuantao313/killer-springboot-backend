@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
+
 /**
  * @author YuanTao
  */
@@ -19,7 +21,7 @@ public class HistoryModel extends BaseModel {
     @TableField("job_id")
     private Integer jobId;
     private Boolean checked;
-    private String time;
+    private Date time;
     private String status;
     @TableField("is_manual")
     private Boolean isManual;

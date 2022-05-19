@@ -44,9 +44,9 @@ public class JobServiceImpl implements IJobService {
     }
 
     @Override
-    public boolean updateJob(Integer id, JobModel jobModel) {
+    public boolean updateJob(JobModel jobModel) {
         try {
-            manager.updateJob(id, jobModel);
+            manager.updateJob(jobModel);
             return true;
         } catch (Exception e) {
             e.printStackTrace();

@@ -30,8 +30,8 @@ public class JobController {
         return jobService.getJobs();
     }
 
-    @GetMapping("/job/{hash}")
-    public JobModel getJob(@PathVariable("hash") Integer id) {
+    @GetMapping("/job/{id}")
+    public JobModel getJob(@PathVariable("id") Integer id) {
         return jobService.getJob(id);
     }
 
@@ -40,23 +40,23 @@ public class JobController {
         return jobService.addJob(jobModel);
     }
 
-    @PutMapping("/job/{hash}")
-    public boolean updateJob(@PathVariable("hash") Integer id, @RequestBody JobModel jobModel) {
-        return jobService.updateJob(id, jobModel);
+    @PutMapping("/job/{id}")
+    public boolean updateJob(@PathVariable("id") Integer id, @RequestBody JobModel jobModel) {
+        return jobService.updateJob(jobModel);
     }
 
-    @PatchMapping("/job/{hash}")
-    public boolean patchJob(@PathVariable("hash") Integer id, @RequestBody Map<String,Object> values) {
+    @PatchMapping("/job/{id}")
+    public boolean patchJob(@PathVariable("id") Integer id, @RequestBody Map<String,Object> values) {
         return jobService.updateJob(id, values);
     }
 
-    @DeleteMapping("/job/{hash}")
-    public boolean deleteJob(@PathVariable("hash") Integer id) {
+    @DeleteMapping("/job/{id}")
+    public boolean deleteJob(@PathVariable("id") Integer id) {
         return jobService.deleteJob(id);
     }
 
-    @PostMapping("/job/{hash}/trig")
-    public boolean trigJob(@PathVariable("hash") Integer id) {
+    @PostMapping("/job/{id}/trig")
+    public boolean trigJob(@PathVariable("id") Integer id) {
         return jobService.trigJob(id);
     }
 }

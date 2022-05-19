@@ -8,6 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Component;
+import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
+import xyz.fumarase.killer.anlaiye.client.exception.EmptyOrderException;
+import xyz.fumarase.killer.anlaiye.client.exception.OrderTimeoutException;
+import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.anlaiye.object.UserBuilder;
 import xyz.fumarase.killer.mapper.HistoryMapper;
@@ -29,7 +33,8 @@ import java.util.*;
 @Slf4j
 public class Manager extends QuartzJobBean {
     //todo 重新构建ManagerFactory
-
+    //todo job各操作原子化
+    private HashMap<Long, User> users;
     private Scheduler scheduler;
 
     @Autowired
@@ -61,27 +66,33 @@ public class Manager extends QuartzJobBean {
 
     public void addUser(UserModel userModel) {
         userMapper.insert(userModel);
+        users.put(userModel.getUserId(), UserBuilder.newUser().fromModel(userModel).build());
     }
 
     public User getUser(Long userId) {
-        return UserBuilder.newUser().fromModel(userMapper.selectById(userId)).build();
+        return users.get(userId);
     }
 
     public List<User> getUsers() {
-        List<User> users = new ArrayList<>();
-        for (UserModel userModel : userMapper.selectList(null)) {
-            users.add(UserBuilder.newUser().fromModel(userModel).build());
-        }
-        return users;
+        return new ArrayList<>(users.values());
     }
 
     public void deleteUser(Long userId) {
+        log.info("删除用户：{}", userId);
+        users.remove(userId);
         userMapper.deleteById(userId);
     }
 
     @PostConstruct
     public void afterConstruct() {
         try {
+
+            users = new HashMap<>(userMapper.selectList(null).size());
+            for (UserModel userModel : userMapper.selectList(null)) {
+                log.info("从数据库装配用户：{}", userModel);
+                users.put(userModel.getUserId(), UserBuilder.newUser().fromModel(userModel).build());
+            }
+            log.info("装配用户完成,共{}个用户", users.size());
             this.scheduler = schedulerFactoryBean.getScheduler();
             for (JobModel jobModel : jobMapper.selectList(null)) {
                 log.info("从数据库装配任务：{}", jobModel);
@@ -109,15 +120,21 @@ public class Manager extends QuartzJobBean {
     public void loadJob(JobModel jobModel) {
         log.info("装配任务：{}", jobModel);
         try {
-            JobDetail jobDetail = JobBuilder.newJob(Manager.class)
-                    .withIdentity(String.valueOf(jobModel.getId()), "JOB")
-                    .build();
-            jobDetail.getJobDataMap().put("jobId", jobModel.getId());
             Trigger trigger = TriggerBuilder.newTrigger()
                     .withIdentity(String.valueOf(jobModel.getId()), "TRIGGER")
                     .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(jobModel.getHour(), jobModel.getMinute()))
                     .build();
-            scheduler.scheduleJob(jobDetail, trigger);
+            if (scheduler.checkExists(new JobKey(String.valueOf(jobModel.getId()), "JOB"))) {
+                log.info("任务已存在，更新任务");
+                scheduler.rescheduleJob(trigger.getKey(), trigger);
+            } else {
+                log.info("任务不存在，添加任务");
+                JobDetail jobDetail = JobBuilder.newJob(Manager.class)
+                        .withIdentity(String.valueOf(jobModel.getId()), "JOB")
+                        .build();
+                jobDetail.getJobDataMap().put("jobId", jobModel.getId());
+                scheduler.scheduleJob(jobDetail, trigger);
+            }
             log.info("成功：{}", jobModel);
         } catch (Exception e) {
             e.printStackTrace();
@@ -148,11 +165,11 @@ public class Manager extends QuartzJobBean {
         }
     }
 
-    public void updateJob(Integer jobId, JobModel jobModel) {
+    public void updateJob(JobModel jobModel) {
         log.info("更新任务：{}", jobModel);
         try {
-            deleteJob(jobId);
-            addJob(jobModel);
+            jobMapper.updateById(jobModel);
+            loadJob(jobModel);
             log.info("更新任务成功：{}", jobModel);
         } catch (Exception e) {
             e.printStackTrace();
@@ -173,7 +190,7 @@ public class Manager extends QuartzJobBean {
                 e.printStackTrace();
             }
         }
-        updateJob(id, jobModel);
+        updateJob(jobModel);
     }
 
     public void runJob(int jobId) {
@@ -182,26 +199,37 @@ public class Manager extends QuartzJobBean {
         historyModel.setJobId(jobModel.getId());
         historyModel.setStatus("RUNNING");
         StackTraceElement[] elements = Thread.currentThread().getStackTrace();
-        if("trigJob".equals(elements[2].getMethodName())) {
+        if ("trigJob".equals(elements[2].getMethodName())) {
             historyModel.setIsManual(true);
-        }else if("executeInternal".equals(elements[2].getMethodName())) {
+        } else if ("executeInternal".equals(elements[2].getMethodName())) {
             historyModel.setIsManual(false);
         }
         historyMapper.insert(historyModel);
         UpdateWrapper<HistoryModel> uw = (new UpdateWrapper<>());
         uw.eq("id", historyModel.getId());
-        boolean isSuccess = getUser(jobModel.getSource())
-                .setShop(jobModel.getShopId())
-                .avoid(jobModel.getBlackList())
-                .need(jobModel.getNeedList())
-                .setTarget(jobModel.getTarget())
-                .waitForShop()
-                .run(jobModel.getTimeout());
-        if (isSuccess) {
-            historyMapper.update(historyModel, uw.set("status", "SUCCESS"));
-        } else {
-            historyMapper.update(historyModel, uw.set("status", "FAILED"));
+        try {
+            boolean isSuccess = getUser(jobModel.getSource())
+                    .setShop(jobModel.getShopId())
+                    .avoid(jobModel.getBlackList())
+                    .need(jobModel.getNeedList())
+                    .setTarget(jobModel.getTarget())
+                    .waitForShop()
+                    .run(jobModel.getTimeout());
+            if (isSuccess) {
+                historyMapper.update(historyModel, uw.set("status", "SUCCESS"));
+            } else {
+                historyMapper.update(historyModel, uw.set("status", "UNKNOWN"));
+            }
+        } catch (TokenInvalidException e) {
+            historyMapper.update(historyModel, uw.set("status", "TOKEN"));
+        } catch (EmptyOrderException e) {
+            historyMapper.update(historyModel, uw.set("status", "EMPTY"));
+        } catch (OrderTimeoutException e) {
+            historyMapper.update(historyModel, uw.set("status", "TIMEOUT"));
+        } catch (ClientException e) {
+            historyMapper.update(historyModel, uw.set("status", "UNKNOWN"));
         }
+        //这里，也要考虑，使用enum
     }
 
     @Override

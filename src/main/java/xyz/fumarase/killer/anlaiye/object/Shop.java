@@ -2,7 +2,7 @@ package xyz.fumarase.killer.anlaiye.object;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import xyz.fumarase.killer.anlaiye.Client;
+import xyz.fumarase.killer.anlaiye.client.Client;
 
 import java.util.ArrayList;
 import java.util.HashMap;
