@@ -5,18 +5,16 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
 /**
  * @author YuanTao
  */
-@Component
 @Data
 @TableName("history")
 public class HistoryModel extends BaseModel {
-    @TableId( type = IdType.AUTO)
+    @TableId(type = IdType.AUTO)
     private Integer id;
     @TableField("job_id")
     private Integer jobId;
@@ -25,4 +23,6 @@ public class HistoryModel extends BaseModel {
     private String status;
     @TableField("is_manual")
     private Boolean isManual;
+    @TableField("order_id")
+    private Long orderId;
 }

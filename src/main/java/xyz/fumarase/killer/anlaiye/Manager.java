@@ -1,13 +1,10 @@
 package xyz.fumarase.killer.anlaiye;
 
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
-import org.springframework.scheduling.quartz.SchedulerFactoryBean;
-import org.springframework.stereotype.Component;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
 import xyz.fumarase.killer.anlaiye.client.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.client.exception.OrderTimeoutException;
@@ -21,51 +18,35 @@ import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
 import xyz.fumarase.killer.model.UserModel;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.util.*;
 
 /**
  * @author YuanTao
  */
-@Component
 @NoArgsConstructor
+@Data
 @Slf4j
-public class Manager extends QuartzJobBean {
-    //todo 重新构建ManagerFactory
+public class Manager {
     //todo job各操作原子化
     private HashMap<Long, User> users;
     private Scheduler scheduler;
 
-    @Autowired
-    public void setSchedulerFactoryBean(SchedulerFactoryBean schedulerFactoryBean) {
-        this.schedulerFactoryBean = schedulerFactoryBean;
-    }
-
-    private SchedulerFactoryBean schedulerFactoryBean;
     private UserMapper userMapper;
-
-    @Autowired
-    public void setUserMapper(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
 
     private JobMapper jobMapper;
 
-    @Autowired
-    public void setJobMapper(JobMapper jobMapper) {
-        this.jobMapper = jobMapper;
-    }
-
     private HistoryMapper historyMapper;
 
-    @Autowired
-    public void setHistoryMapper(HistoryMapper historyMapper) {
-        this.historyMapper = historyMapper;
-    }
 
     public void addUser(UserModel userModel) {
         userMapper.insert(userModel);
+        users.put(userModel.getUserId(), UserBuilder.newUser().fromModel(userModel).build());
+    }
+
+    public void updateUser(UserModel userModel) {
+        userMapper.updateById(userModel);
+        users.remove(userModel.getUserId());
         users.put(userModel.getUserId(), UserBuilder.newUser().fromModel(userModel).build());
     }
 
@@ -83,27 +64,6 @@ public class Manager extends QuartzJobBean {
         userMapper.deleteById(userId);
     }
 
-    @PostConstruct
-    public void afterConstruct() {
-        try {
-
-            users = new HashMap<>(userMapper.selectList(null).size());
-            for (UserModel userModel : userMapper.selectList(null)) {
-                log.info("从数据库装配用户：{}", userModel);
-                users.put(userModel.getUserId(), UserBuilder.newUser().fromModel(userModel).build());
-            }
-            log.info("装配用户完成,共{}个用户", users.size());
-            this.scheduler = schedulerFactoryBean.getScheduler();
-            for (JobModel jobModel : jobMapper.selectList(null)) {
-                log.info("从数据库装配任务：{}", jobModel);
-                loadJob(jobModel);
-            }
-            log.info("装配任务完成,共{}个任务", jobMapper.selectCount(null));
-            scheduler.start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     public void addJob(JobModel jobModel) {
         log.info("添加任务：{}", jobModel);
@@ -129,7 +89,7 @@ public class Manager extends QuartzJobBean {
                 scheduler.rescheduleJob(trigger.getKey(), trigger);
             } else {
                 log.info("任务不存在，添加任务");
-                JobDetail jobDetail = JobBuilder.newJob(Manager.class)
+                JobDetail jobDetail = JobBuilder.newJob(Job.class)
                         .withIdentity(String.valueOf(jobModel.getId()), "JOB")
                         .build();
                 jobDetail.getJobDataMap().put("jobId", jobModel.getId());
@@ -208,22 +168,23 @@ public class Manager extends QuartzJobBean {
         UpdateWrapper<HistoryModel> uw = (new UpdateWrapper<>());
         uw.eq("id", historyModel.getId());
         try {
-            boolean isSuccess = getUser(jobModel.getSource())
+            long orderId = getUser(jobModel.getSource())
                     .setShop(jobModel.getShopId())
                     .avoid(jobModel.getBlackList())
                     .need(jobModel.getNeedList())
                     .setTarget(jobModel.getTarget())
                     .waitForShop()
                     .run(jobModel.getTimeout());
-            if (isSuccess) {
+            if (orderId > 0) {
+                historyMapper.update(historyModel, uw.set("order_id", orderId));
                 historyMapper.update(historyModel, uw.set("status", "SUCCESS"));
             } else {
                 historyMapper.update(historyModel, uw.set("status", "UNKNOWN"));
             }
         } catch (TokenInvalidException e) {
-            historyMapper.update(historyModel, uw.set("status", "TOKEN"));
+            historyMapper.update(historyModel, uw.set("status", "INVALID TOKEN"));
         } catch (EmptyOrderException e) {
-            historyMapper.update(historyModel, uw.set("status", "EMPTY"));
+            historyMapper.update(historyModel, uw.set("status", "ORDER EMPTY"));
         } catch (OrderTimeoutException e) {
             historyMapper.update(historyModel, uw.set("status", "TIMEOUT"));
         } catch (ClientException e) {
@@ -232,12 +193,6 @@ public class Manager extends QuartzJobBean {
         //这里，也要考虑，使用enum
     }
 
-    @Override
-    protected void executeInternal(JobExecutionContext context) {
-        JobDataMap jobDataMap = context.getJobDetail().getJobDataMap();
-        int jobId = (int) jobDataMap.get("jobId");
-        runJob(jobId);
-    }
 
     public List<JobModel> getJobs() {
         List<JobModel> jobModels = jobMapper.selectList(null);
@@ -256,4 +211,6 @@ public class Manager extends QuartzJobBean {
     public JobModel getJob(int id) {
         return jobMapper.selectById(id);
     }
+
+
 }

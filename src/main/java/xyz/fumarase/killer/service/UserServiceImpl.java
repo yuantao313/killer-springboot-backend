@@ -47,6 +47,17 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
+    public boolean updateUser(Long userId, String captcha) throws Exception {
+        UserModel userModel = new UserModel();
+        userModel.setUserId(userId);
+        HashMap<String, String> captchaResult = Login.loginWithCaptcha(userId, captcha);
+        userModel.setToken(captchaResult.get("token"));
+        userModel.setLoginToken(captchaResult.get("login_token"));
+        manager.updateUser(userModel);
+        return true;
+    }
+
+    @Override
     public Boolean deleteUser(Long userId) {
         try {
             manager.deleteUser(userId);

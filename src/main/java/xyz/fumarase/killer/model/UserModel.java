@@ -4,14 +4,12 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
 /**
  * @author YuanTao
  */
-@Component
 @Data
 @TableName(value = "user", autoResultMap = true)
 public class UserModel extends BaseModel {

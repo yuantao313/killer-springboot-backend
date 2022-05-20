@@ -14,6 +14,7 @@ public interface IUserService {
     User getUser(Long userId);
 
     boolean addUser(Long userId, String captcha) throws Exception;
+    boolean updateUser(Long userId, String captcha) throws Exception;
 
     Boolean deleteUser(Long userId);
 

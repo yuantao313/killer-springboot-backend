@@ -249,31 +249,17 @@ public class Client implements IPublicApi, IPrivateApi {
         }
     }
 
-    public Long order(Order order, Integer timeout) throws ClientException {
-        //todo 将超时等工作与client解耦，移动到user
-        if (order.getGoods().isEmpty()) {
-            return -1L;
-        }
-        Long orderId = null;
-        while (orderId == null) {
-            try {
-                JsonNode orderNode = post("food/order/info", jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {
-                }));
-                if (orderNode.get("result").asBoolean()) {
-                    orderId = orderNode.get("data").get("orderId").asLong();
-                    logger.info("下单成功,订单号为{}", orderId);
-                }
-                if (timeout > 0) {
-                    logger.info("下单失败,1s后重试");
-                    Thread.sleep(1000);
-                    timeout -= 1;
-                } else {
-                    throw new OrderTimeoutException();
-                }
-            } catch (InterruptedException | JsonProcessingException e) {
-                e.printStackTrace();
+    public Long order(Order order) throws ClientException {
+        try {
+            JsonNode orderNode = post("food/order/info", jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {
+            }));
+            if (orderNode.get("result").asBoolean()) {
+                return orderNode.get("data").get("orderId").asLong();
             }
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
         }
-        return orderId;
+
+        return -1L;
     }
 }

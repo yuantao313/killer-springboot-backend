@@ -37,6 +37,11 @@ public class UserController {
         return userService.addUser(userId, param.get("captcha"));
     }
 
+    @PutMapping("/user/{userId}")
+    public Boolean updateUser(@PathVariable("userId") Long userId, @RequestBody HashMap<String, String> param) throws Exception {
+        return userService.updateUser(userId, param.get("captcha"));
+    }
+
     @DeleteMapping("/user/{userId}")
     public Boolean deleteUser(@PathVariable("userId") Long userId) {
         return userService.deleteUser(userId);
