@@ -20,14 +20,16 @@ public class HistoryController {
     }
 
     @GetMapping("/history")
-    public List<HistoryModel> getHistories() {
-        return historyService.getHistories();
+    public List<HistoryModel> getHistories(
+            @RequestParam(value = "page",required = false,defaultValue = "-1") Integer page,
+            @RequestParam(value = "pageSize",required = false,defaultValue = "-1") Integer pageSize) {
+        return historyService.getHistories(page,pageSize);
     }
 
 
-    @PostMapping("/history/{id}")
-    public Boolean checkHistory(@PathVariable("id") Integer id) {
-        historyService.checkHistory(id);
+    @DeleteMapping("/history/{id}")
+    public Boolean deleteHistory(@PathVariable("id") Integer id) {
+        historyService.deleteHistory(id);
         return true;
     }
 }

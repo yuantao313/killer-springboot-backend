@@ -28,7 +28,7 @@ public class UserServiceImpl implements IUserService {
     }
 
     public List<User> getUsers() {
-        return new ArrayList<>(manager.getUsers());
+        return manager.getUsers();
     }
 
     public User getUser(Long userId) {

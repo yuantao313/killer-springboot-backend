@@ -1,7 +1,11 @@
 package xyz.fumarase.killer.anlaiye.object;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.SneakyThrows;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
@@ -9,6 +13,7 @@ import xyz.fumarase.killer.anlaiye.client.exception.OrderTimeoutException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.crypto.Phone;
 
+import javax.annotation.PostConstruct;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,14 +23,17 @@ import java.util.List;
 /**
  * @author YuanTao
  */
-@Setter
+@Data
 @Slf4j
+@Builder
+@AllArgsConstructor
+@Accessors(chain = true)
 public class User {
     @JsonIgnore
     private final Client client;
     @JsonIgnore
     private Address address;
-    private final List<Address> addresses;
+    private List<Address> addresses;
     @JsonIgnore
     private Shop shop;
     private final Long userId;
@@ -33,29 +41,25 @@ public class User {
     private List<String> blackList;
     @JsonIgnore
     private HashMap<String, Integer> needList;
+    @Builder.Default
     private Boolean isTokenValid = true;
     @JsonIgnore
     private Integer timeout;
     @JsonIgnore
     private Long startTimeStamp;
 
-    public User(Long userId, String token, String loginToken) {
-        List<Address> addresses1;
-        this.client = new Client(token, loginToken, 229);
-        this.userId = userId;
+    public User initAddress() {
         try {
-            addresses1 = client.getAddress();
+            addresses = client.getAddress();
         } catch (TokenInvalidException e) {
             log.info("token失效");
             this.isTokenValid = false;
-            addresses1 = new ArrayList<>(0);
+            addresses = new ArrayList<>(0);
         }
-
-        addresses = addresses1;
+        return this;
     }
 
-
-    public User setShop(Integer shopId) {
+    public User setShopId(Integer shopId) {
         shop = client.getShop(shopId);
         return this;
     }
@@ -70,30 +74,34 @@ public class User {
     }
 
     public User avoid(List<String> blackList) {
-        setBlackList(blackList);
-        return this;
+        return setBlackList(blackList);
     }
 
     public User need(HashMap<String, Integer> needList) {
-        setNeedList(needList);
-        return this;
+        return setNeedList(needList);
     }
 
     public User waitForShop() throws OrderTimeoutException {
         startTimeStamp = System.currentTimeMillis();
         while (!shop.isOpen()) {
+            log.info("店铺未营业，1秒后重试");
             if (System.currentTimeMillis() - startTimeStamp >= timeout * 1000) {
                 throw new OrderTimeoutException();
             }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
+        log.info("店铺营业");
         return this;
     }
 
-    public Long run(Integer timeout) throws ClientException {
+    public Long run() throws ClientException {
         //todo User应该对某些Client Exception进行处理，前端也应当对力所能及的exception进行支持
         //todo 比如，在TokenInvalid并且时间充足的条件下，在前端提示重置token
         //todo 当然，实现比较复杂。不能处理的，再抛出，写入运行历史数据库
-        //long startTimeStamp = System.currentTimeMillis();
         List<OrderGood> orderGoods = shop.order(blackList, needList);
         String delivery = client.precheck(shop, orderGoods);
         Order order = OrderBuilder.newOrder()

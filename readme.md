@@ -8,7 +8,8 @@ It is still developing.
 > Fixed: Implemented in Client but without cache.
 - Class Manager is coupled with JobModel.
 > Fixed: Coupling is not a shameful thing.
-> 
+- Uncouple AlyApi.
+> Need more effort.
 ## Todo
 - [x] Make a job running state dashboard.
 - [ ] Make a reporter connected with any platform like Dingtalk.

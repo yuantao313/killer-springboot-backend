@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.util.Date;
@@ -17,7 +16,7 @@ import java.util.List;
  */
 @Data
 @TableName(value = "job", autoResultMap = true)
-public class JobModel extends BaseModel {
+public class JobModel extends ModelBase {
     Long source;
     Long target;
     @TableField("shop_id")
@@ -37,6 +36,4 @@ public class JobModel extends BaseModel {
     private Date addTime;
     @TableField(value = "update_time", update = "now()")
     private Date updateTime;
-    @TableField(exist = false)
-    private Date nextRunTime;
 }

@@ -11,7 +11,7 @@ import xyz.fumarase.killer.anlaiye.crypto.Phone;
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Address {
+public class Address extends AddressBase {
     @JsonProperty(value = "addressee_encryption", access = JsonProperty.Access.WRITE_ONLY)
     String addresseeEncryption;
     @JsonProperty(value = "mp_encryption")

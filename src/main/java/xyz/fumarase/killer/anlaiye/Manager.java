@@ -1,20 +1,13 @@
 package xyz.fumarase.killer.anlaiye;
 
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
-import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
-import xyz.fumarase.killer.anlaiye.client.exception.EmptyOrderException;
-import xyz.fumarase.killer.anlaiye.client.exception.OrderTimeoutException;
-import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
+import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.object.User;
-import xyz.fumarase.killer.anlaiye.object.UserBuilder;
-import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;
-import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
 import xyz.fumarase.killer.model.UserModel;
 
@@ -25,29 +18,43 @@ import java.util.*;
  * @author YuanTao
  */
 @NoArgsConstructor
-@Data
+@Setter
 @Slf4j
 public class Manager {
     //todo job各操作原子化
     private HashMap<Long, User> users;
     private Scheduler scheduler;
 
+    public void start() {
+        try {
+            this.scheduler.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private UserMapper userMapper;
 
     private JobMapper jobMapper;
 
-    private HistoryMapper historyMapper;
-
 
     public void addUser(UserModel userModel) {
+        User user = User.builder()
+                .userId(userModel.getUserId())
+                .client(new Client(userModel.getToken(), userModel.getLoginToken(), 229))
+                .build().initAddress();
+        users.put(user.getUserId(), user);
         userMapper.insert(userModel);
-        users.put(userModel.getUserId(), UserBuilder.newUser().fromModel(userModel).build());
     }
 
     public void updateUser(UserModel userModel) {
-        userMapper.updateById(userModel);
         users.remove(userModel.getUserId());
-        users.put(userModel.getUserId(), UserBuilder.newUser().fromModel(userModel).build());
+        User user = User.builder()
+                .userId(userModel.getUserId())
+                .client(new Client(userModel.getToken(), userModel.getLoginToken(), 229))
+                .build().initAddress();
+        users.put(user.getUserId(), user);
+        userMapper.updateById(userModel);
     }
 
     public User getUser(Long userId) {
@@ -95,7 +102,7 @@ public class Manager {
                 jobDetail.getJobDataMap().put("jobId", jobModel.getId());
                 scheduler.scheduleJob(jobDetail, trigger);
             }
-            log.info("成功：{}", jobModel);
+            log.info("成功");
         } catch (Exception e) {
             e.printStackTrace();
             log.error("失败：{}", e.getMessage());
@@ -117,7 +124,8 @@ public class Manager {
     public void trigJob(int id) {
         log.info("手动触发任务：{}", id);
         try {
-            runJob(id);
+            scheduler.triggerJob(new JobKey(String.valueOf(id), "JOB"));
+            //注意处理数据库手动字段
             log.info("触发任务成功：{}", id);
         } catch (Exception e) {
             e.printStackTrace();
@@ -153,59 +161,9 @@ public class Manager {
         updateJob(jobModel);
     }
 
-    public void runJob(int jobId) {
-        JobModel jobModel = jobMapper.selectById(jobId);
-        HistoryModel historyModel = new HistoryModel();
-        historyModel.setJobId(jobModel.getId());
-        historyModel.setStatus("RUNNING");
-        StackTraceElement[] elements = Thread.currentThread().getStackTrace();
-        if ("trigJob".equals(elements[2].getMethodName())) {
-            historyModel.setIsManual(true);
-        } else if ("executeInternal".equals(elements[2].getMethodName())) {
-            historyModel.setIsManual(false);
-        }
-        historyMapper.insert(historyModel);
-        UpdateWrapper<HistoryModel> uw = (new UpdateWrapper<>());
-        uw.eq("id", historyModel.getId());
-        try {
-            long orderId = getUser(jobModel.getSource())
-                    .setShop(jobModel.getShopId())
-                    .avoid(jobModel.getBlackList())
-                    .need(jobModel.getNeedList())
-                    .setTarget(jobModel.getTarget())
-                    .waitForShop()
-                    .run(jobModel.getTimeout());
-            if (orderId > 0) {
-                historyMapper.update(historyModel, uw.set("order_id", orderId));
-                historyMapper.update(historyModel, uw.set("status", "SUCCESS"));
-            } else {
-                historyMapper.update(historyModel, uw.set("status", "UNKNOWN"));
-            }
-        } catch (TokenInvalidException e) {
-            historyMapper.update(historyModel, uw.set("status", "INVALID TOKEN"));
-        } catch (EmptyOrderException e) {
-            historyMapper.update(historyModel, uw.set("status", "ORDER EMPTY"));
-        } catch (OrderTimeoutException e) {
-            historyMapper.update(historyModel, uw.set("status", "TIMEOUT"));
-        } catch (ClientException e) {
-            historyMapper.update(historyModel, uw.set("status", "UNKNOWN"));
-        }
-        //这里，也要考虑，使用enum
-    }
-
 
     public List<JobModel> getJobs() {
-        List<JobModel> jobModels = jobMapper.selectList(null);
-        try {
-            for (JobModel jobModel : jobModels) {
-                Trigger trigger = scheduler.getTrigger(new TriggerKey(String.valueOf(jobModel.getId()), "TRIGGER"));
-                assert trigger != null;
-                jobModel.setNextRunTime(trigger.getNextFireTime());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return jobModels;
+        return  jobMapper.selectList(null);
     }
 
     public JobModel getJob(int id) {

@@ -12,7 +12,7 @@ import java.util.Date;
  */
 @Data
 @TableName(value = "user", autoResultMap = true)
-public class UserModel extends BaseModel {
+public class UserModel extends ModelBase {
     private Integer id;
     @TableId
     @TableField("user_id")

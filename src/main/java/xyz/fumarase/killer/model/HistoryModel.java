@@ -13,7 +13,7 @@ import java.util.Date;
  */
 @Data
 @TableName("history")
-public class HistoryModel extends BaseModel {
+public class HistoryModel extends ModelBase {
     @TableId(type = IdType.AUTO)
     private Integer id;
     @TableField("job_id")

@@ -8,7 +8,8 @@ import java.util.List;
  * @author YuanTao
  */
 public interface IHistoryService {
-    List<HistoryModel> getHistories();
 
-    void checkHistory(Integer id);
+    List<HistoryModel> getHistories(int page, int pageSize);
+
+    void deleteHistory(Integer id);
 }

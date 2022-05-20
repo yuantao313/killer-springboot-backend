@@ -5,15 +5,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
 import xyz.fumarase.killer.anlaiye.client.exception.EmptyOrderException;
-import xyz.fumarase.killer.anlaiye.client.exception.OrderTimeoutException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.*;
 
@@ -24,8 +22,8 @@ import java.util.*;
  * @author YuanTao
  */
 @Getter
-public class Client implements IPublicApi, IPrivateApi {
-    private final static Logger logger = LoggerFactory.getLogger(Client.class);
+@Slf4j
+public class Client extends ClientBase {
     private final OkHttpClient httpClient = new OkHttpClient();
     private final static JsonMapper jsonMapper = new JsonMapper();
     private final Integer schoolId;
@@ -65,7 +63,6 @@ public class Client implements IPublicApi, IPrivateApi {
      * @return 包装后的请求数据
      */
     private HashMap<String, Object> wrap(HashMap<String, Object> data, Boolean anonymous) {
-
         data.put("app_version", APP_VERSION);
         data.put("time", System.currentTimeMillis());
         if (!anonymous && token != null && loginToken != null) {
@@ -120,7 +117,6 @@ public class Client implements IPublicApi, IPrivateApi {
      * @return 请求结果
      */
     private synchronized JsonNode post(String action, HashMap<String, Object> data) throws TokenInvalidException {
-
         return post(action, "/agent/post", data, false);
     }
 
@@ -162,7 +158,6 @@ public class Client implements IPublicApi, IPrivateApi {
      * @return 学校中存在的商家和商家ID
      */
     public List<HashMap<String, Object>> getSchool(Integer schoolId) {
-
         HashMap<String, Object> data = new HashMap<>();
         data.put("school_id", schoolId);
         data.put("target", "merchants");
@@ -211,7 +206,11 @@ public class Client implements IPublicApi, IPrivateApi {
         data.put("shop_id", shopId);
         data.put("target", "merchants");
         JsonNode shopNode = get("pub/shop/goodsV2", data).get("data");
-        return shopNode.get("shop_detail").get("is_open").asInt() == 1;
+        try {
+            return shopNode.get("shop_detail").get("is_open").asInt() == 1;
+        } catch (NullPointerException e) {
+            return true;
+        }
     }
 
     public List<Address> getAddress() throws TokenInvalidException {
@@ -255,11 +254,12 @@ public class Client implements IPublicApi, IPrivateApi {
             }));
             if (orderNode.get("result").asBoolean()) {
                 return orderNode.get("data").get("orderId").asLong();
+            } else {
+                log.info("失败原因{}", orderNode.get("message").asText());
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
-
         return -1L;
     }
 }
