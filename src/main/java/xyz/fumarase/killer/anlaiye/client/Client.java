@@ -16,6 +16,8 @@ import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.*;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -228,7 +230,7 @@ public class Client extends ClientBase {
         }
     }
 
-    public String precheck(Shop shop, List<OrderGood> orderGoods) throws ClientException {
+    public Precheck precheck(Shop shop, List<OrderGood> orderGoods) throws ClientException {
         if (orderGoods.size() == 0) {
             throw new EmptyOrderException();
         }
@@ -240,11 +242,27 @@ public class Client extends ClientBase {
         data.put("goods", orderGoods);
         data.put("orderType", shop.isSelfTake() ? 1 : 0);
         JsonNode jsonNode = post("pub/order/precheck", data);
-        HashMap<String, String> result = new HashMap<>();
         try {
-            return jsonNode.get("data").get("deliveryDateTimeList").get(0).get("delivery_TimeList").get(0).get("delivery_time").asText();
+            //返回最早的时间
+            Precheck precheck = new Precheck();
+            JsonNode anode = jsonNode.get("data").get("deliveryDateTimeList").get(0).get("delivery_TimeList").get(0);
+            precheck.setDeliveryDate(anode.get("delivery_date").asText());
+            precheck.setDeliveryTime(anode.get("delivery_time").asText());
+            for (JsonNode node : jsonNode.get("data").get("right_goods")) {
+                if (node.get("status").asInt() != 0) {
+                    /*
+                     * 状态码说明
+                     * 0->无异常
+                     * 3000->已下架
+                     * 3001->已售罄
+                     * 3003->价格更新
+                     * */
+                    precheck.getInvalidGoodId().add(node.get("goods_sale_id").asLong());
+                }
+            }
+            return precheck;
         } catch (Exception e) {
-            return "0";
+            return Precheck.getDefault();
         }
     }
 

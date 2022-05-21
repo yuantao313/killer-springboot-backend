@@ -18,7 +18,7 @@ public class ResponseResult<T> implements Serializable {
     private Boolean status;
     private T data;
 
-    public static <T> ResponseResult<T> success(T data) {
+    public static  <T> ResponseResult<T> success(T data) {
         ResponseResult<T> result = new ResponseResult<>();
         result.setStatus(true);
         result.setCode(ResultCode.SUCCESS.getCode());
@@ -27,8 +27,8 @@ public class ResponseResult<T> implements Serializable {
         return result;
     }
 
-    public static <T> ResponseResult<T> failure(ResultCode resultCode) {
-        return new ResponseResult<>(resultCode.getCode(), resultCode.getMessage(), false, null);
+    public static ResponseResult failure(ResultCode resultCode) {
+        return new ResponseResult(resultCode.getCode(), resultCode.getMessage(), false, null);
     }
 
 }

@@ -1,5 +1,7 @@
 package xyz.fumarase.killer.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import xyz.fumarase.killer.anlaiye.login.exception.CaptchaInvalidException;
 import xyz.fumarase.killer.anlaiye.login.exception.CaptchaTimeoutException;
@@ -13,6 +15,7 @@ import xyz.fumarase.killer.anlaiye.login.exception.LoginException;
  */
 @RestControllerAdvice
 public class ExceptionHandler {
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @org.springframework.web.bind.annotation.ExceptionHandler(value = Error.class)
     public ResponseResult handler(Error e) {
         return ResponseResult.failure(ResultCode.INTERNAL_SERVER_ERROR);

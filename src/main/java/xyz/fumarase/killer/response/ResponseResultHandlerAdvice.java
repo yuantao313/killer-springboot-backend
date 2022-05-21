@@ -1,8 +1,10 @@
 package xyz.fumarase.killer.response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -17,6 +19,13 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 @RestControllerAdvice
 public class ResponseResultHandlerAdvice implements ResponseBodyAdvice<Object> {
 
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    public void setObjectMapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
         return true;
@@ -24,17 +33,15 @@ public class ResponseResultHandlerAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public Object beforeBodyWrite(@Nullable Object body, MethodParameter returnType, MediaType selectedContentType, Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
-        JsonMapper jsonMapper = new JsonMapper();
-        try {
-            if (body instanceof String) {
-                return ResponseResult.success(jsonMapper.writeValueAsString(body));
-            } else if (body instanceof ResponseResult<?>) {
-                return body;
-            } else {
-                return ResponseResult.success(body);
+        if (body instanceof String) {
+            try {
+                return ResponseResult.success(objectMapper.writeValueAsString(body));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
             }
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+        } else if (body instanceof ResponseResult<?>) {
+            return body;
         }
+        return ResponseResult.success(body);
     }
 }

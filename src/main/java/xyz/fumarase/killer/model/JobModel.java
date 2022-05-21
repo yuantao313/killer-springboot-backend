@@ -36,4 +36,6 @@ public class JobModel extends ModelBase {
     private Date addTime;
     @TableField(value = "update_time", update = "now()")
     private Date updateTime;
+
+    private Integer mode;
 }

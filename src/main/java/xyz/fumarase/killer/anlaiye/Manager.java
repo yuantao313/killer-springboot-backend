@@ -5,9 +5,12 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import xyz.fumarase.killer.anlaiye.client.Client;
+import xyz.fumarase.killer.anlaiye.object.Shop;
 import xyz.fumarase.killer.anlaiye.object.User;
+import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;
+import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
 import xyz.fumarase.killer.model.UserModel;
 
@@ -25,6 +28,8 @@ public class Manager {
     private HashMap<Long, User> users;
     private Scheduler scheduler;
 
+    private Client client;
+
     public void start() {
         try {
             this.scheduler.start();
@@ -37,14 +42,17 @@ public class Manager {
 
     private JobMapper jobMapper;
 
+    private HistoryMapper historyMapper;
 
-    public void addUser(UserModel userModel) {
+
+    public Integer addUser(UserModel userModel) {
         User user = User.builder()
                 .userId(userModel.getUserId())
                 .client(new Client(userModel.getToken(), userModel.getLoginToken(), 229))
                 .build().initAddress();
-        users.put(user.getUserId(), user);
+        users.put(userModel.getUserId(), user);
         userMapper.insert(userModel);
+        return userModel.getId();
     }
 
     public void updateUser(UserModel userModel) {
@@ -53,7 +61,7 @@ public class Manager {
                 .userId(userModel.getUserId())
                 .client(new Client(userModel.getToken(), userModel.getLoginToken(), 229))
                 .build().initAddress();
-        users.put(user.getUserId(), user);
+        users.put(userModel.getUserId(), user);
         userMapper.updateById(userModel);
     }
 
@@ -72,16 +80,18 @@ public class Manager {
     }
 
 
-    public void addJob(JobModel jobModel) {
+    public Integer addJob(JobModel jobModel) {
         log.info("添加任务：{}", jobModel);
         try {
             jobMapper.insert(jobModel);
             loadJob(jobModel);
             log.info("添加任务成功");
+            return jobModel.getId();
         } catch (Exception e) {
             e.printStackTrace();
             log.error("添加任务失败{}", e.getMessage());
         }
+        return null;
     }
 
     public void loadJob(JobModel jobModel) {
@@ -161,14 +171,41 @@ public class Manager {
         updateJob(jobModel);
     }
 
+    private HashMap<Integer, Shop> shops;
+
+    public Shop getShop(Integer id) {
+        if (!shops.containsKey(id)) {
+            shops.put(id, client.getShop(id));
+        }
+        return shops.get(id);
+    }
 
     public List<JobModel> getJobs() {
-        return  jobMapper.selectList(null);
+        return jobMapper.selectList(null);
     }
 
     public JobModel getJob(int id) {
         return jobMapper.selectById(id);
     }
 
+    public void writeHistory(HistoryModel historyModel) {
 
+    }
+
+    public void flipJob(int id) {
+        JobModel jobModel = jobMapper.selectById(id);
+        jobModel.setEnable(!jobModel.getEnable());
+        updateJob(jobModel);
+    }
+
+    public Integer addHistory(HistoryModel historyModel) {
+        historyMapper.insert(historyModel);
+        return historyModel.getId();
+    }
+    public void updateHistory(HistoryModel historyModel) {
+        historyMapper.updateById(historyModel);
+    }
+    public void deleteHistory(int id) {
+        historyMapper.deleteById(id);
+    }
 }

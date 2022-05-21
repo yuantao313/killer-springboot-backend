@@ -44,10 +44,4 @@ public class OrderBuilder {
     public Order build() {
         return new Order(shop, orderGoods, address, deliveryDate, deliveryTime);
     }
-
-    public OrderBuilder setDelivery(String deliveryDate, String deliveryTime) {
-        this.deliveryDate = deliveryDate;
-        this.deliveryTime = deliveryTime;
-        return this;
-    }
 }

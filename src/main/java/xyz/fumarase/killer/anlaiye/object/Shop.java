@@ -35,7 +35,7 @@ public class Shop {
         return this.selfTakeAddress != null;
     }
 
-    public List<OrderGood> order(final List<String> blackList, final HashMap<String, Integer> needList) {
+    public HashMap<Long,OrderGood> order(final List<String> blackList, final HashMap<String, Integer> needList) {
         int size = 0;
         for (Integer number : needList.values()) {
             size += number;
@@ -94,6 +94,6 @@ public class Shop {
         }
         while (added);
         log.info("购物车总计{}件商品", shoppingCart.size());
-        return new ArrayList<>(shoppingCart.values());
+        return shoppingCart;
     }
 }

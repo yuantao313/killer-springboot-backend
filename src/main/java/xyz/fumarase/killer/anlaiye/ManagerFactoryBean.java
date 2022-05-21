@@ -1,5 +1,6 @@
 package xyz.fumarase.killer.anlaiye;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,7 @@ import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Component;
 import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.object.User;
+import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;
 import xyz.fumarase.killer.model.JobModel;
@@ -34,8 +36,15 @@ public class ManagerFactoryBean implements FactoryBean<Manager> {
         this.jobMapper = jobMapper;
     }
 
+    private HistoryMapper historyMapper;
+
+    @Autowired
+    public void setHistoryMapper(HistoryMapper historyMapper) {
+        this.historyMapper = historyMapper;
+    }
 
     private SchedulerFactoryBean schedulerFactoryBean;
+
 
     @Autowired
     public void setSchedulerFactoryBean(SchedulerFactoryBean schedulerFactoryBean) {
@@ -48,16 +57,19 @@ public class ManagerFactoryBean implements FactoryBean<Manager> {
         Manager manager = new Manager();
         manager.setUserMapper(userMapper);
         manager.setJobMapper(jobMapper);
+        manager.setHistoryMapper(historyMapper);
         manager.setScheduler(schedulerFactoryBean.getScheduler());
+        manager.setShops(new HashMap<>());
+        manager.setClient(new Client());
         try {
             HashMap<Long, User> users = new HashMap<>(userMapper.selectList(null).size());
-            for (UserModel userModel : userMapper.selectList(null)) {
+            for (UserModel userModel : userMapper.selectList((new QueryWrapper<UserModel>()).orderByAsc("id"))) {
                 log.info("从数据库装配用户：{}", userModel.getUserId());
                 User user = User.builder()
                         .userId(userModel.getUserId())
-                        .client(new Client(userModel.getToken(),userModel.getLoginToken(),229))
+                        .client(new Client(userModel.getToken(), userModel.getLoginToken(), 229))
                         .build().initAddress();
-                users.put(user.getUserId(),user);
+                users.put(userModel.getUserId(), user);
             }
             manager.setUsers(users);
             log.info("装配用户完成,共{}个用户", userMapper.selectCount(null));
