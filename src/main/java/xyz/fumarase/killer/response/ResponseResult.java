@@ -3,6 +3,7 @@ package xyz.fumarase.killer.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import xyz.fumarase.killer.constrant.ResultCode;
 
 import java.io.Serializable;
 

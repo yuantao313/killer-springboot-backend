@@ -7,7 +7,7 @@ import xyz.fumarase.killer.anlaiye.login.exception.CaptchaInvalidException;
 import xyz.fumarase.killer.anlaiye.login.exception.CaptchaTimeoutException;
 import xyz.fumarase.killer.anlaiye.login.exception.LoginUnsafeException;
 import xyz.fumarase.killer.response.ResponseResult;
-import xyz.fumarase.killer.response.ResultCode;
+import xyz.fumarase.killer.constrant.ResultCode;
 import xyz.fumarase.killer.anlaiye.login.exception.LoginException;
 
 /**

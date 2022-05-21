@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye;
+package xyz.fumarase.killer.anlaiye.job;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
@@ -6,9 +6,10 @@ import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
+import xyz.fumarase.killer.anlaiye.Manager;
+import xyz.fumarase.killer.anlaiye.job.exception.OrderTimeoutException;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
-import xyz.fumarase.killer.anlaiye.client.exception.EmptyOrderException;
-import xyz.fumarase.killer.anlaiye.client.exception.OrderTimeoutException;
+import xyz.fumarase.killer.anlaiye.job.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.*;
 import xyz.fumarase.killer.model.HistoryModel;
@@ -18,8 +19,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static xyz.fumarase.killer.model.JobMode.ONCE;
-import static xyz.fumarase.killer.model.JobMode.UNTIL_SUCCESS;
+import static xyz.fumarase.killer.constrant.HistoryStatusEnum.*;
+import static xyz.fumarase.killer.constrant.JobModeEnum.ONCE;
+import static xyz.fumarase.killer.constrant.JobModeEnum.UNTIL_SUCCESS;
 
 /**
  * @author YuanTao
@@ -51,6 +53,18 @@ public class Job extends QuartzJobBean {
         log.info("店铺营业");
     }
 
+    private boolean isFullySuccess(List<OrderGood> orderGoods, HashMap<String, Integer> needList) {
+        int successNum = 0;
+        for (Integer needNum : needList.values()) {
+            successNum += needNum;
+        }
+        for (OrderGood orderGood : orderGoods) {
+            successNum -= orderGood.getNumber();
+        }
+
+        return successNum <= 0;
+    }
+
     @Override
     public void executeInternal(JobExecutionContext context) throws JobExecutionException {
         startTimeStamp = System.currentTimeMillis();
@@ -63,13 +77,16 @@ public class Job extends QuartzJobBean {
         }
         HistoryModel historyModel = new HistoryModel();
         historyModel.setJobId(jobModel.getId());
-        historyModel.setStatus("RUNNING");
+        historyModel.setStatus(RUNNING);
         manager.addHistory(historyModel);
         User user = manager.getUser(jobModel.getSource());
         Shop shop = manager.getShop(jobModel.getShopId());
         try {
             HashMap<Long, OrderGood> orderGoodsMap = shop.order(jobModel.getBlackList(), jobModel.getNeedList());
             List<OrderGood> orderGoods = new ArrayList<>(orderGoodsMap.values());
+            if (orderGoods.isEmpty()) {
+                throw new EmptyOrderException();
+            }
             Precheck precheck = user.precheck(shop, orderGoods);
             if (precheck.getInvalidGoodId().size() > 0) {
                 for (Long id : precheck.getInvalidGoodId()) {
@@ -102,23 +119,12 @@ public class Job extends QuartzJobBean {
             } while (System.currentTimeMillis() - startTimeStamp < jobModel.getTimeout() * 1000);
             if (orderId > 0) {
                 historyModel.setOrderId(orderId);
-                int successNum = 0;
-                for (OrderGood orderGood : orderGoods) {
-                    successNum += orderGood.getNumber();
-                }
-                for (Integer needNum : jobModel.getNeedList().values()) {
-                    successNum -= needNum;
-                }
-                if (successNum < 0) {
-                    historyModel.setStatus("PARTIALLY");
-                } else {
-                    historyModel.setStatus("SUCCESS");
-                }
-                if (jobModel.getMode() == ONCE.getCode()) {
+                historyModel.setStatus(isFullySuccess(orderGoods, jobModel.getNeedList()) ? SUCCESS : PARTIALLY);
+                if (jobModel.getMode() == ONCE) {
                     jobModel.setEnable(false);
                 }
 
-                if (jobModel.getMode() == UNTIL_SUCCESS.getCode()) {
+                if (jobModel.getMode() == UNTIL_SUCCESS) {
                     jobModel.setEnable(false);
                 }
             } else {
@@ -126,16 +132,16 @@ public class Job extends QuartzJobBean {
             }
         } catch (TokenInvalidException e) {
             log.info("用户{}的token失效", jobModel.getSource());
-            historyModel.setStatus("TOKEN INVALID");
+            historyModel.setStatus(TOKEN_INVALID);
         } catch (EmptyOrderException e) {
             log.info("订单为空");
-            historyModel.setStatus("EMPTY ORDER");
+            historyModel.setStatus(EMPTY_ORDER);
         } catch (OrderTimeoutException e) {
             log.info("订单超时");
-            historyModel.setStatus("TIMEOUT");
+            historyModel.setStatus(TIMEOUT);
         } catch (ClientException e) {
             log.info("未知错误");
-            historyModel.setStatus("UNKNOWN");
+            historyModel.setStatus(UNKNOWN);
         }
         //status转为枚举
         manager.updateHistory(historyModel);

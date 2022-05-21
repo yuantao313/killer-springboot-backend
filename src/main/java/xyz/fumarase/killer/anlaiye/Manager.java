@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import xyz.fumarase.killer.anlaiye.client.Client;
+import xyz.fumarase.killer.anlaiye.job.Job;
 import xyz.fumarase.killer.anlaiye.object.Shop;
 import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.mapper.HistoryMapper;

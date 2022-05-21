@@ -14,14 +14,19 @@ import java.util.Date;
 @TableName(value = "user", autoResultMap = true)
 public class UserModel extends ModelBase {
     private Integer id;
+
     @TableId
     @TableField("user_id")
     private Long userId;
+
     @TableField("login_token")
     private String loginToken;
+
     private String token;
+
     @TableField("add_time")
     private Date addTime;
-    @TableField(value = "update_time",update = "now()")
+
+    @TableField(value = "update_time", update = "now()")
     private Date updateTime;
 }

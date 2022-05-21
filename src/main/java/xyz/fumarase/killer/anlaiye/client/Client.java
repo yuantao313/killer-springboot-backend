@@ -11,13 +11,11 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
-import xyz.fumarase.killer.anlaiye.client.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
+import xyz.fumarase.killer.anlaiye.job.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.object.*;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -231,9 +229,6 @@ public class Client extends ClientBase {
     }
 
     public Precheck precheck(Shop shop, List<OrderGood> orderGoods) throws ClientException {
-        if (orderGoods.size() == 0) {
-            throw new EmptyOrderException();
-        }
         HashMap<String, Object> data = new HashMap<>();
         data.put("target", "order_center");
         data.put("school_id", schoolId);
@@ -265,7 +260,6 @@ public class Client extends ClientBase {
             return Precheck.getDefault();
         }
     }
-
     public Long order(Order order) throws ClientException {
         try {
             JsonNode orderNode = post("food/order/info", jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {

@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.response;
+package xyz.fumarase.killer.constrant;
 
 import lombok.Getter;
 
