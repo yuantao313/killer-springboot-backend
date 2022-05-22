@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -207,7 +208,8 @@ public class Client extends ClientBase {
         data.put("target", "merchants");
         JsonNode shopNode = get("pub/shop/goodsV2", data).get("data");
         try {
-            return shopNode.get("shop_detail").get("is_open").asInt() == 1;
+            return true;
+            //return shopNode.get("shop_detail").get("is_open").asInt() == 1;
         } catch (NullPointerException e) {
             return true;
         }
@@ -228,6 +230,7 @@ public class Client extends ClientBase {
         }
     }
 
+    @SneakyThrows(InterruptedException.class)
     public Precheck precheck(Shop shop, List<OrderGood> orderGoods) throws ClientException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("target", "order_center");
@@ -236,13 +239,20 @@ public class Client extends ClientBase {
         data.put("supplier_short_name", shop.getShopName());
         data.put("goods", orderGoods);
         data.put("orderType", shop.isSelfTake() ? 1 : 0);
-        JsonNode jsonNode = post("pub/order/precheck", data);
+        JsonNode jsonNode = null;
         try {
             //返回最早的时间
             Precheck precheck = new Precheck();
-            JsonNode anode = jsonNode.get("data").get("deliveryDateTimeList").get(0).get("delivery_TimeList").get(0);
+            while (true) {
+                jsonNode = post("food/order/precheck", data);
+                if (jsonNode.get("result").asBoolean()) break;
+                else {
+                    Thread.sleep(1000);
+                }
+            }
+            JsonNode anode = jsonNode.get("data").get("deliveryDateTimeList").get(0);
             precheck.setDeliveryDate(anode.get("delivery_date").asText());
-            precheck.setDeliveryTime(anode.get("delivery_time").asText());
+            precheck.setDeliveryTime(anode.get("delivery_TimeList").get(0).get("delivery_time").asText());
             for (JsonNode node : jsonNode.get("data").get("right_goods")) {
                 if (node.get("status").asInt() != 0) {
                     /*
@@ -256,22 +266,22 @@ public class Client extends ClientBase {
                 }
             }
             return precheck;
-        } catch (Exception e) {
+        } catch (NullPointerException e) {
             return Precheck.getDefault();
         }
     }
+
+    @SneakyThrows(JsonProcessingException.class)
     public Long order(Order order) throws ClientException {
-        try {
-            JsonNode orderNode = post("food/order/info", jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {
-            }));
-            if (orderNode.get("result").asBoolean()) {
-                return orderNode.get("data").get("orderId").asLong();
-            } else {
-                log.info("失败原因{}", orderNode.get("message").asText());
-            }
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+        HashMap<String, Object> data = jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {
+        });
+        JsonNode orderNode = post("food/order/info", data);
+        if (orderNode.get("result").asBoolean()) {
+            return orderNode.get("data").get("orderId").asLong();
+        } else {
+            log.info("失败原因{}", orderNode.get("message").asText());
         }
+
         return -1L;
     }
 }
