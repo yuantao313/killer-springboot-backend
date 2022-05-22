@@ -1,5 +1,6 @@
 package xyz.fumarase.killer.anlaiye.job;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -38,17 +39,15 @@ public class Job extends QuartzJobBean {
         this.manager = manager;
     }
 
+    @SneakyThrows(InterruptedException.class)
     private void wait(Shop shop, Integer timeout) throws OrderTimeoutException {
+        //todo 判断商家是预定还是定点开放，预定的话直接return
         while (!shop.isOpen()) {
             log.info("店铺未营业，1秒后重试");
             if (System.currentTimeMillis() - startTimeStamp >= timeout * 1000) {
                 throw new OrderTimeoutException();
             }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            Thread.sleep(1000);
         }
         log.info("店铺营业");
     }
@@ -61,20 +60,16 @@ public class Job extends QuartzJobBean {
         for (OrderGood orderGood : orderGoods) {
             successNum -= orderGood.getNumber();
         }
-
         return successNum <= 0;
     }
 
     @Override
-    public void executeInternal(JobExecutionContext context) throws JobExecutionException {
+    @SneakyThrows(InterruptedException.class)
+    public void executeInternal(JobExecutionContext context) {
         startTimeStamp = System.currentTimeMillis();
         int jobId = context.getJobDetail().getJobDataMap().getInt("jobId");
         log.info("任务{}开始执行", jobId);
         JobModel jobModel = manager.getJob(jobId);
-        if (jobModel == null || !jobModel.getEnable()) {
-            log.info("任务{}已经被禁用", jobId);
-            return;
-        }
         HistoryModel historyModel = new HistoryModel();
         historyModel.setJobId(jobModel.getId());
         historyModel.setStatus(RUNNING);
@@ -88,7 +83,7 @@ public class Job extends QuartzJobBean {
                 throw new EmptyOrderException();
             }
             Precheck precheck = user.precheck(shop, orderGoods);
-            if (precheck.getInvalidGoodId().size() > 0) {
+            if (precheck.getInvalidGoodId()!=null && precheck.getInvalidGoodId().size() > 0) {
                 for (Long id : precheck.getInvalidGoodId()) {
                     orderGoodsMap.remove(id);
                 }
@@ -111,21 +106,16 @@ public class Job extends QuartzJobBean {
                     log.info("订单号：" + orderId);
                     break;
                 }
-                try {
-                    Thread.sleep(1000);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                Thread.sleep(1000);
             } while (System.currentTimeMillis() - startTimeStamp < jobModel.getTimeout() * 1000);
+            if (jobModel.getMode() == ONCE) {
+                manager.pauseJob(jobId);
+            }
             if (orderId > 0) {
                 historyModel.setOrderId(orderId);
                 historyModel.setStatus(isFullySuccess(orderGoods, jobModel.getNeedList()) ? SUCCESS : PARTIALLY);
-                if (jobModel.getMode() == ONCE) {
-                    jobModel.setEnable(false);
-                }
-
                 if (jobModel.getMode() == UNTIL_SUCCESS) {
-                    jobModel.setEnable(false);
+                    manager.pauseJob(jobId);
                 }
             } else {
                 throw new OrderTimeoutException();
@@ -143,7 +133,6 @@ public class Job extends QuartzJobBean {
             log.info("未知错误");
             historyModel.setStatus(UNKNOWN);
         }
-        //status转为枚举
         manager.updateHistory(historyModel);
     }
 }

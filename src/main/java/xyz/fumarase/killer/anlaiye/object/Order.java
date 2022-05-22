@@ -1,10 +1,9 @@
 package xyz.fumarase.killer.anlaiye.object;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
 
 import java.util.List;
 
@@ -12,6 +11,7 @@ import java.util.List;
  * @author YuanTao
  */
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Order {
     private String target;
     private String packPrice;
@@ -40,10 +40,11 @@ public class Order {
     @JsonProperty("address_lng")
     private Double addressLng;
     private Integer orderType;
-    @JsonProperty("selfTakeAddr")
-    private String selfTakeAddr;
+    @JsonProperty("pickUpAddr")
+    private String pickUpAddr;
+
     public Order(Shop shop, List<OrderGood> goods, Address address, String deliveryDate, String deliveryTime) {
-        this.target="order_center";
+        this.target = "order_center";
         this.packPrice = "0.00";
         this.reductionAmount = "0.00";
         this.goods = goods;
@@ -52,13 +53,14 @@ public class Order {
         this.comment = "";
         this.source = "";
         this.supplierId = shop.getShopId();
-        if(shop.isSelfTake()){
+        this.consigneeTelEncryption = address.getMpEncryption();
+        if (shop.isSelfTake()) {
             this.orderType = 1;
-            this.selfTakeAddr = shop.getSelfTakeAddress();
-        }else{
+            this.pickUpAddr = shop.getSelfTakeAddress();
+            this.gender = null;
+        } else {
             this.consignee = address.getAddresseeEncryption();
-            this.consigneeTelEncryption = address.getMpEncryption();
-            this.gender="女男".indexOf(address.getGender());
+            this.gender = "女男".indexOf(address.getGender());
             this.addressId = address.getId();
             this.addressDetail = address.getDetail();
             this.addressSummary = address.getPoiAddress();

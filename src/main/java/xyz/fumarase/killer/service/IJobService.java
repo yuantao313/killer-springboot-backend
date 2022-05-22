@@ -20,4 +20,7 @@ public interface IJobService {
     List<JobModel> getJobs();
     JobModel getJob(Integer id);
     boolean trigJob(Integer id);
+
+    boolean pauseJob(Integer id);
+    boolean resumeJob(Integer id);
 }

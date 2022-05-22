@@ -1,7 +1,9 @@
 package xyz.fumarase.killer.anlaiye;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import xyz.fumarase.killer.anlaiye.client.Client;
@@ -28,7 +30,6 @@ public class Manager {
     //todo job各操作原子化
     private HashMap<Long, User> users;
     private Scheduler scheduler;
-
     private Client client;
 
     public void start() {
@@ -113,6 +114,9 @@ public class Manager {
                 jobDetail.getJobDataMap().put("jobId", jobModel.getId());
                 scheduler.scheduleJob(jobDetail, trigger);
             }
+            if (!jobModel.getEnable()) {
+                pauseJob(jobModel.getId());
+            }
             log.info("成功");
         } catch (Exception e) {
             e.printStackTrace();
@@ -120,28 +124,26 @@ public class Manager {
         }
     }
 
+    @SneakyThrows(SchedulerException.class)
     public void deleteJob(int jobId) {
         log.info("删除任务：{}", jobId);
-        try {
-            jobMapper.deleteById(jobId);
-            scheduler.deleteJob(new JobKey(String.valueOf(jobId), "JOB"));
-            log.info("删除任务成功：{}", jobId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("删除任务失败：{}", e.getMessage());
-        }
+        jobMapper.deleteById(jobId);
+        scheduler.deleteJob(new JobKey(String.valueOf(jobId), "JOB"));
+        log.info("删除任务成功：{}", jobId);
     }
 
+    @SneakyThrows(SchedulerException.class)
     public void trigJob(int id) {
         log.info("手动触发任务：{}", id);
-        try {
-            scheduler.triggerJob(new JobKey(String.valueOf(id), "JOB"));
-            //注意处理数据库手动字段
-            log.info("触发任务成功：{}", id);
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("触发任务失败：{}", e.getMessage());
-        }
+        scheduler.triggerJob(new JobKey(String.valueOf(id), "JOB"));
+        QueryWrapper<HistoryModel> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("job_id", id);
+        queryWrapper.orderByDesc("create_time");
+        queryWrapper.last("limit 1");
+        HistoryModel newHistory = historyMapper.selectList(queryWrapper).get(0);
+        //会不会出现lock？
+        newHistory.setIsManual(true);
+        historyMapper.updateById(newHistory);
     }
 
     public void updateJob(JobModel jobModel) {
@@ -156,18 +158,15 @@ public class Manager {
         }
     }
 
+    @SneakyThrows
     public void updateJob(Integer id, Map<String, Object> data) {
         JobModel jobModel = jobMapper.selectById(id);
         Class<JobModel> clazz = JobModel.class;
         for (String key : data.keySet()) {
-            try {
-                Field field = clazz.getDeclaredField(key);
-                field.setAccessible(true);
-                field.set(jobModel, data.get(key));
-                field.setAccessible(false);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
+            Field field = clazz.getDeclaredField(key);
+            field.setAccessible(true);
+            field.set(jobModel, data.get(key));
+            field.setAccessible(false);
         }
         updateJob(jobModel);
     }
@@ -189,23 +188,30 @@ public class Manager {
         return jobMapper.selectById(id);
     }
 
-    public void writeHistory(HistoryModel historyModel) {
-
+    @SneakyThrows
+    public void pauseJob(int id) {
+        log.info("暂停任务：{}", id);
+        jobMapper.updateById(jobMapper.selectById(id).setEnable(false));
+        scheduler.pauseJob(new JobKey(String.valueOf(id), "JOB"));
     }
 
-    public void flipJob(int id) {
-        JobModel jobModel = jobMapper.selectById(id);
-        jobModel.setEnable(!jobModel.getEnable());
-        updateJob(jobModel);
+    @SneakyThrows
+    public void resumeJob(int id) {
+        log.info("恢复任务：{}", id);
+        jobMapper.updateById(jobMapper.selectById(id).setEnable(true));
+        scheduler.resumeJob(new JobKey(String.valueOf(id), "JOB"));
     }
+
 
     public Integer addHistory(HistoryModel historyModel) {
         historyMapper.insert(historyModel);
         return historyModel.getId();
     }
+
     public void updateHistory(HistoryModel historyModel) {
         historyMapper.updateById(historyModel);
     }
+
     public void deleteHistory(int id) {
         historyMapper.deleteById(id);
     }

@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import xyz.fumarase.killer.constrant.JobModeEnum;
 
 import java.util.Date;
@@ -17,6 +18,7 @@ import java.util.List;
  */
 @Data
 @TableName(value = "job", autoResultMap = true)
+@Accessors(chain = true)
 public class JobModel extends ModelBase {
     Long source;
 

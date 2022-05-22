@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import xyz.fumarase.killer.constrant.HistoryStatusEnum;
 
 import java.util.Date;
@@ -14,6 +15,7 @@ import java.util.Date;
  */
 @Data
 @TableName("history")
+@Accessors(chain = true)
 public class HistoryModel extends ModelBase {
     @TableId(type = IdType.AUTO)
     private Integer id;

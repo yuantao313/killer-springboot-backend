@@ -59,4 +59,13 @@ public class JobController {
     public boolean trigJob(@PathVariable("id") Integer id) {
         return jobService.trigJob(id);
     }
+
+    @PostMapping("/job/{id}/pause")
+    public boolean pauseJob(@PathVariable("id") Integer id) {
+        return jobService.pauseJob(id);
+    }
+    @PostMapping("/job/{id}/resume")
+    public boolean resumeJob(@PathVariable("id") Integer id) {
+        return jobService.resumeJob(id);
+    }
 }

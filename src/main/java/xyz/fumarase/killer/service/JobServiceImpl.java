@@ -91,4 +91,24 @@ public class JobServiceImpl implements IJobService {
             return false;
         }
     }
+
+    public boolean pauseJob(Integer id) {
+        try {
+            manager.pauseJob(id);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean resumeJob(Integer id) {
+        try {
+            manager.resumeJob(id);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
