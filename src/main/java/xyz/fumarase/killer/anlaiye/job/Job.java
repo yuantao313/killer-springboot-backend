@@ -1,9 +1,9 @@
 package xyz.fumarase.killer.anlaiye.job;
 
+import com.github.jaemon.dinger.DingerSender;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
@@ -16,9 +16,7 @@ import xyz.fumarase.killer.anlaiye.object.*;
 import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static xyz.fumarase.killer.constrant.HistoryStatusEnum.*;
 import static xyz.fumarase.killer.constrant.JobModeEnum.ONCE;
@@ -33,6 +31,12 @@ public class Job extends QuartzJobBean {
     private Manager manager;
 
     private Long startTimeStamp;
+    private Reporter reporter;
+
+    @Autowired
+    public void setReporter(Reporter reporter) {
+        this.reporter = reporter;
+    }
 
     @Autowired
     public void setManager(Manager manager) {
@@ -69,10 +73,18 @@ public class Job extends QuartzJobBean {
         startTimeStamp = System.currentTimeMillis();
         int jobId = context.getJobDetail().getJobDataMap().getInt("jobId");
         log.info("任务{}开始执行", jobId);
+        reporter.report("任务" + jobId + "开始执行");
         JobModel jobModel = manager.getJob(jobId);
         HistoryModel historyModel = new HistoryModel();
         historyModel.setJobId(jobModel.getId());
         historyModel.setStatus(RUNNING);
+        Calendar c = Calendar.getInstance();
+        if(jobModel.getHour() == c.get(Calendar.HOUR_OF_DAY) && jobModel.getMinute() == c.get(Calendar.MINUTE)){
+            //todo 这样做不准确但没办法
+            historyModel.setIsManual(false);
+        }else{
+            historyModel.setIsManual(true);
+        }
         manager.addHistory(historyModel);
         User user = manager.getUser(jobModel.getSource());
         Shop shop = manager.getShop(jobModel.getShopId());
@@ -83,7 +95,7 @@ public class Job extends QuartzJobBean {
                 throw new EmptyOrderException();
             }
             Precheck precheck = user.precheck(shop, orderGoods);
-            if (precheck.getInvalidGoodId()!=null && precheck.getInvalidGoodId().size() > 0) {
+            if (precheck.getInvalidGoodId() != null && precheck.getInvalidGoodId().size() > 0) {
                 for (Long id : precheck.getInvalidGoodId()) {
                     orderGoodsMap.remove(id);
                 }
@@ -104,17 +116,20 @@ public class Job extends QuartzJobBean {
                     log.info("抢购失败,1s后重试");
                 } else {
                     log.info("订单号：" + orderId);
+                    reporter.report("订单号：" + orderId);
                     break;
                 }
                 Thread.sleep(1000);
             } while (System.currentTimeMillis() - startTimeStamp < jobModel.getTimeout() * 1000);
             if (jobModel.getMode() == ONCE) {
+                log.info("任务被设定为一次性任务，将任务状态暂停");
                 manager.pauseJob(jobId);
             }
             if (orderId > 0) {
                 historyModel.setOrderId(orderId);
                 historyModel.setStatus(isFullySuccess(orderGoods, jobModel.getNeedList()) ? SUCCESS : PARTIALLY);
                 if (jobModel.getMode() == UNTIL_SUCCESS) {
+                    log.info("任务被设定为直到成功任务，并且本次执行成功，将任务状态暂停");
                     manager.pauseJob(jobId);
                 }
             } else {

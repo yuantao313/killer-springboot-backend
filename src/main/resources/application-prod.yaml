@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: Killer
+  datasource:
+    username: your_username
+    password: your_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/killer?useSSL=false&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+  dinger:
+    project-id: KILLER
+    dingers:
+      dingtalk:
+        token-id: "your_token_id"
+        secret: "your_secret"
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+mybatis-plus:
+  type-enums-package: xyz.fumarase.killer.constrant
+  configuration:
+    default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler

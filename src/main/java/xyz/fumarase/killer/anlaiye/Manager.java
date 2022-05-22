@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.job.Job;
+import xyz.fumarase.killer.anlaiye.job.Reporter;
 import xyz.fumarase.killer.anlaiye.object.Shop;
 import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.mapper.HistoryMapper;
@@ -31,6 +32,7 @@ public class Manager {
     private HashMap<Long, User> users;
     private Scheduler scheduler;
     private Client client;
+    private Reporter reporter;
 
     public void start() {
         try {
@@ -45,6 +47,7 @@ public class Manager {
     private JobMapper jobMapper;
 
     private HistoryMapper historyMapper;
+
 
 
     public Integer addUser(UserModel userModel) {
@@ -136,14 +139,16 @@ public class Manager {
     public void trigJob(int id) {
         log.info("手动触发任务：{}", id);
         scheduler.triggerJob(new JobKey(String.valueOf(id), "JOB"));
+        /*
         QueryWrapper<HistoryModel> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("job_id", id);
-        queryWrapper.orderByDesc("create_time");
+        queryWrapper.orderByDesc("time");
         queryWrapper.last("limit 1");
         HistoryModel newHistory = historyMapper.selectList(queryWrapper).get(0);
         //会不会出现lock？
         newHistory.setIsManual(true);
-        historyMapper.updateById(newHistory);
+        while(scheduler.getTriggerState(TriggerKey.triggerKey(String.valueOf(id), "TRIGGER")) == Trigger.TriggerState.) {
+        historyMapper.updateById(newHistory);*/
     }
 
     public void updateJob(JobModel jobModel) {
@@ -214,5 +219,9 @@ public class Manager {
 
     public void deleteHistory(int id) {
         historyMapper.deleteById(id);
+    }
+
+    public void setReporter(Reporter reporter) {
+        this.reporter = reporter;
     }
 }

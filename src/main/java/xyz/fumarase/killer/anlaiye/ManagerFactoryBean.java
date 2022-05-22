@@ -1,12 +1,14 @@
 package xyz.fumarase.killer.anlaiye;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.github.jaemon.dinger.DingerSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Component;
 import xyz.fumarase.killer.anlaiye.client.Client;
+import xyz.fumarase.killer.anlaiye.job.Reporter;
 import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;
@@ -51,6 +53,13 @@ public class ManagerFactoryBean implements FactoryBean<Manager> {
         this.schedulerFactoryBean = schedulerFactoryBean;
     }
 
+    private Reporter reporter;
+    @Autowired
+    public  void setReporter(Reporter reporter){
+        this.reporter = reporter;
+    }
+
+
     @Override
     public Manager getObject() {
         log.info("Manager开始初始化");
@@ -61,6 +70,7 @@ public class ManagerFactoryBean implements FactoryBean<Manager> {
         manager.setScheduler(schedulerFactoryBean.getScheduler());
         manager.setShops(new HashMap<>());
         manager.setClient(new Client());
+        manager.setReporter(reporter);
         try {
             HashMap<Long, User> users = new HashMap<>(userMapper.selectList(null).size());
             for (UserModel userModel : userMapper.selectList((new QueryWrapper<UserModel>()).orderByAsc("id"))) {

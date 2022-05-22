@@ -1,10 +1,8 @@
 package xyz.fumarase.killer.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import xyz.fumarase.killer.anlaiye.object.Good;
 import xyz.fumarase.killer.service.MiscServiceImpl;
 
 import java.util.HashMap;
@@ -37,5 +35,10 @@ public class MiscController {
     @GetMapping("/info")
     public HashMap<String, Object> info() {
         return miscService.getInfo();
+    }
+
+    @GetMapping("/testNeedItem")
+    public List<Good> testNeedItem(@RequestParam String keyWord, @RequestParam Integer shopId) {
+        return miscService.testNeedItem(shopId, keyWord);
     }
 }
