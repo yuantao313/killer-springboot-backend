@@ -1,11 +1,13 @@
 package xyz.fumarase.killer.anlaiye;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import xyz.fumarase.killer.anlaiye.client.Client;
 
 class ClientTest {
     @Test
+    @SneakyThrows
     void test() throws JsonProcessingException {
         Client client = new Client();
         System.out.println(123);

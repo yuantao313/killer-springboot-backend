@@ -1,6 +1,5 @@
 package xyz.fumarase.killer.anlaiye.job;
 
-import com.github.jaemon.dinger.DingerSender;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
@@ -8,11 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 import xyz.fumarase.killer.anlaiye.Manager;
+import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.job.exception.OrderTimeoutException;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
 import xyz.fumarase.killer.anlaiye.job.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.*;
+import xyz.fumarase.killer.reporter.Reporter;
 import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
 
@@ -28,15 +29,19 @@ import static xyz.fumarase.killer.constrant.JobModeEnum.UNTIL_SUCCESS;
 @Component
 @Slf4j
 public class Job extends QuartzJobBean {
-    private Manager manager;
+
 
     private Long startTimeStamp;
+
+    private Client client;
     private Reporter reporter;
 
     @Autowired
     public void setReporter(Reporter reporter) {
         this.reporter = reporter;
     }
+
+    private Manager manager;
 
     @Autowired
     public void setManager(Manager manager) {
@@ -79,35 +84,26 @@ public class Job extends QuartzJobBean {
         historyModel.setJobId(jobModel.getId());
         historyModel.setStatus(RUNNING);
         Calendar c = Calendar.getInstance();
-        if(jobModel.getHour() == c.get(Calendar.HOUR_OF_DAY) && jobModel.getMinute() == c.get(Calendar.MINUTE)){
+        if (jobModel.getHour() == c.get(Calendar.HOUR_OF_DAY) && jobModel.getMinute() == c.get(Calendar.MINUTE)) {
             //todo 这样做不准确但没办法
             historyModel.setIsManual(false);
-        }else{
+        } else {
             historyModel.setIsManual(true);
         }
         manager.addHistory(historyModel);
         User user = manager.getUser(jobModel.getSource());
         Shop shop = manager.getShop(jobModel.getShopId());
         try {
-            HashMap<Long, OrderGood> orderGoodsMap = shop.order(jobModel.getBlackList(), jobModel.getNeedList());
-            List<OrderGood> orderGoods = new ArrayList<>(orderGoodsMap.values());
+            List<OrderGood> orderGoods = shop.order(jobModel.getBlackList(), jobModel.getNeedList());
             if (orderGoods.isEmpty()) {
                 throw new EmptyOrderException();
             }
-            Precheck precheck = user.precheck(shop, orderGoods);
-            if (precheck.getInvalidGoodId() != null && precheck.getInvalidGoodId().size() > 0) {
-                for (Long id : precheck.getInvalidGoodId()) {
-                    orderGoodsMap.remove(id);
-                }
-            }
-            orderGoods = new ArrayList<>(orderGoodsMap.values());
             Order order = OrderBuilder.newOrder()
                     .setAddress(user.getAddress(jobModel.getTarget()))
                     .setShop(shop)
                     .setOrderGoods(orderGoods)
-                    .setDeliveryDate(precheck.getDeliveryDate())
-                    .setDeliveryTime(precheck.getDeliveryTime())
                     .build();
+            order = user.precheck(shop, order);
             wait(shop, jobModel.getTimeout());
             Long orderId;
             do {

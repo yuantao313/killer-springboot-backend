@@ -1,14 +1,13 @@
 package xyz.fumarase.killer.anlaiye;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.github.jaemon.dinger.DingerSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Component;
 import xyz.fumarase.killer.anlaiye.client.Client;
-import xyz.fumarase.killer.anlaiye.job.Reporter;
+import xyz.fumarase.killer.reporter.Reporter;
 import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;

@@ -9,8 +9,6 @@ public class OrderBuilder {
     private Address address;
     private List<OrderGood> orderGoods;
     private Shop shop;
-    private String deliveryDate;
-    private String deliveryTime;
 
     public static OrderBuilder newOrder() {
         return new OrderBuilder();
@@ -31,17 +29,7 @@ public class OrderBuilder {
         return this;
     }
 
-    public OrderBuilder setDeliveryDate(String deliveryDate) {
-        this.deliveryDate = deliveryDate;
-        return this;
-    }
-
-    public OrderBuilder setDeliveryTime(String deliveryTime) {
-        this.deliveryTime = deliveryTime;
-        return this;
-    }
-
     public Order build() {
-        return new Order(shop, orderGoods, address, deliveryDate, deliveryTime);
+        return new Order(shop, orderGoods, address);
     }
 }

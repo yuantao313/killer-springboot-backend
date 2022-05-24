@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye.object;
+package xyz.fumarase.killer.anlaiye.object.base;
 
 /**
  * @author YuanTao

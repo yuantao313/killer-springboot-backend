@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Data;
 import xyz.fumarase.killer.anlaiye.crypto.Phone;
+import xyz.fumarase.killer.anlaiye.object.base.AddressBase;
 
 /**
  * @author YuanTao

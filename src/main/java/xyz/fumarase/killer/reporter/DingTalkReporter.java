@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye.job;
+package xyz.fumarase.killer.reporter;
 
 import com.github.jaemon.dinger.DingerSender;
 import com.github.jaemon.dinger.core.entity.DingerRequest;

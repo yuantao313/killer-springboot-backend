@@ -1,5 +1,7 @@
 package xyz.fumarase.killer.anlaiye.object;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import xyz.fumarase.killer.anlaiye.client.Client;
@@ -13,6 +15,8 @@ import java.util.List;
  */
 @Data
 @Slf4j
+@Builder
+@AllArgsConstructor
 public class Shop {
     private static final Client client = new Client();
     private Integer shopId;
@@ -35,7 +39,7 @@ public class Shop {
         return this.selfTakeAddress != null;
     }
 
-    public HashMap<Long,OrderGood> order(final List<String> blackList, final HashMap<String, Integer> needList) {
+    public List<OrderGood> order(final List<String> blackList, final HashMap<String, Integer> needList) {
         int size = 0;
         for (Integer number : needList.values()) {
             size += number;
@@ -94,6 +98,6 @@ public class Shop {
         }
         while (added);
         log.info("购物车总计{}件商品", shoppingCart.size());
-        return shoppingCart;
+        return new ArrayList<>(shoppingCart.values());
     }
 }

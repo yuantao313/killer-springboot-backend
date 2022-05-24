@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye.job;
+package xyz.fumarase.killer.reporter;
 
 import lombok.extern.slf4j.Slf4j;
 

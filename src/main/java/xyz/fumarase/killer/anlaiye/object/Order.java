@@ -3,6 +3,7 @@ package xyz.fumarase.killer.anlaiye.object;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import xyz.fumarase.killer.anlaiye.object.base.OrderBase;
 
 
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.List;
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Order {
+public class Order extends OrderBase {
     private String target;
     private String packPrice;
     private String reductionAmount;
@@ -43,13 +44,11 @@ public class Order {
     @JsonProperty("pickUpAddr")
     private String pickUpAddr;
 
-    public Order(Shop shop, List<OrderGood> goods, Address address, String deliveryDate, String deliveryTime) {
+    public Order(Shop shop, List<OrderGood> goods, Address address) {
         this.target = "order_center";
         this.packPrice = "0.00";
         this.reductionAmount = "0.00";
         this.goods = goods;
-        this.deliveryDate = deliveryDate;
-        this.deliveryTime = deliveryTime;
         this.comment = "";
         this.source = "";
         this.supplierId = shop.getShopId();
@@ -69,6 +68,4 @@ public class Order {
             this.orderType = 0;
         }
     }
-
-
 }

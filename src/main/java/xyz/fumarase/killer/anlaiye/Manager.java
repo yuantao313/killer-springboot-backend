@@ -1,6 +1,5 @@
 package xyz.fumarase.killer.anlaiye;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -8,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.job.Job;
-import xyz.fumarase.killer.anlaiye.job.Reporter;
+import xyz.fumarase.killer.reporter.Reporter;
 import xyz.fumarase.killer.anlaiye.object.Shop;
 import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.mapper.HistoryMapper;
@@ -139,16 +138,6 @@ public class Manager {
     public void trigJob(int id) {
         log.info("手动触发任务：{}", id);
         scheduler.triggerJob(new JobKey(String.valueOf(id), "JOB"));
-        /*
-        QueryWrapper<HistoryModel> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("job_id", id);
-        queryWrapper.orderByDesc("time");
-        queryWrapper.last("limit 1");
-        HistoryModel newHistory = historyMapper.selectList(queryWrapper).get(0);
-        //会不会出现lock？
-        newHistory.setIsManual(true);
-        while(scheduler.getTriggerState(TriggerKey.triggerKey(String.valueOf(id), "TRIGGER")) == Trigger.TriggerState.) {
-        historyMapper.updateById(newHistory);*/
     }
 
     public void updateJob(JobModel jobModel) {

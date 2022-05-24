@@ -49,8 +49,8 @@ public class User {
         return null;
     }
 
-    public Precheck precheck(Shop shop, List<OrderGood> orderGoods) throws ClientException {
-        return client.precheck(shop, orderGoods);
+    public Order precheck(Shop shop,Order order) throws ClientException {
+        return client.precheck(shop,order);
     }
 
     public Long order(Order order) throws ClientException {

@@ -13,7 +13,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
-import xyz.fumarase.killer.anlaiye.job.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.object.*;
 
 import java.io.IOException;
@@ -24,7 +23,7 @@ import java.util.*;
  */
 @Getter
 @Slf4j
-public class Client extends ClientBase {
+public class Client implements IClient<Order> {
     private final OkHttpClient httpClient = new OkHttpClient();
     private final static JsonMapper jsonMapper = new JsonMapper();
     private final Integer schoolId;
@@ -158,6 +157,10 @@ public class Client extends ClientBase {
      * @param schoolId 学校ID
      * @return 学校中存在的商家和商家ID
      */
+    public Container getContainer(int schoolId) {
+        return null;
+    }
+
     public List<HashMap<String, Object>> getSchool(Integer schoolId) {
         HashMap<String, Object> data = new HashMap<>();
         data.put("school_id", schoolId);
@@ -180,7 +183,7 @@ public class Client extends ClientBase {
         return shops;
     }
 
-    public Shop getShop(Integer shopId) {
+    public Shop getShop(int shopId) {
         HashMap<String, Object> data = new HashMap<>();
         data.put("shop_id", shopId);
         data.put("target", "merchants");
@@ -194,8 +197,15 @@ public class Client extends ClientBase {
         HashMap<Long, Good> goods = new HashMap<>();
         for (JsonNode tagNode : shopNode.get("item_list")) {
             for (JsonNode goodNode : tagNode.get("goods_list")) {
-                Good newGood = new Good(goodNode);
-                goods.put(newGood.getGoodId(), newGood);
+                long goodId = goodNode.get("sku_list").get(0).get("sku_id").asLong();
+                goods.put(goodId, Good.builder()
+                        .goodId(goodId)
+                        .name(goodNode.get("goods_name").asText())
+                        .price(goodNode.get("sku_list").get(0).get("activity_price").asDouble())
+                        .tag(goodNode.get("tag_name").asText())
+                        .limit(goodNode.get("restriction_num").asInt())
+                        .stock(goodNode.get("sku_list").get(0).get("stock").asInt())
+                        .build());
             }
         }
         shop.setGoods(goods);
@@ -230,19 +240,27 @@ public class Client extends ClientBase {
         }
     }
 
+
+
+    /**
+     * 按照precheck结果修改order对象为有效
+     * @param shop shop对象，此参数会在之后进行解耦
+     * @param order order对象
+     * @return 有效的order对象
+     * @throws ClientException
+     */
     @SneakyThrows(InterruptedException.class)
-    public Precheck precheck(Shop shop, List<OrderGood> orderGoods) throws ClientException {
+    public Order precheck(Shop shop,Order order) throws ClientException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("target", "order_center");
         data.put("school_id", schoolId);
-        data.put("supplier_id", shop.getShopId());
-        data.put("supplier_short_name", shop.getShopName());
-        data.put("goods", orderGoods);
-        data.put("orderType", shop.isSelfTake() ? 1 : 0);
+        data.put("supplier_id", order.getSupplierId());
+        data.put("supplier_short_name", shop.getShopName());//todo
+        data.put("goods", order.getGoods());
+        data.put("orderType", shop.isSelfTake() ? 1 : 0);//把manager的get shop 改成 全局缓存
         JsonNode jsonNode = null;
         try {
             //返回最早的时间
-            Precheck precheck = new Precheck();
             while (true) {
                 jsonNode = post("food/order/precheck", data);
                 if (jsonNode.get("result").asBoolean()) break;
@@ -251,8 +269,8 @@ public class Client extends ClientBase {
                 }
             }
             JsonNode anode = jsonNode.get("data").get("deliveryDateTimeList").get(0);
-            precheck.setDeliveryDate(anode.get("delivery_date").asText());
-            precheck.setDeliveryTime(anode.get("delivery_TimeList").get(0).get("delivery_time").asText());
+            order.setDeliveryDate(anode.get("delivery_date").asText());
+            order.setDeliveryTime(anode.get("delivery_TimeList").get(0).get("delivery_time").asText());
             for (JsonNode node : jsonNode.get("data").get("right_goods")) {
                 if (node.get("status").asInt() != 0) {
                     /*
@@ -262,12 +280,16 @@ public class Client extends ClientBase {
                      * 3001->已售罄
                      * 3003->价格更新
                      * */
-                    precheck.getInvalidGoodId().add(node.get("goods_sale_id").asLong());
+                    for(OrderGood orderGood: order.getGoods()){
+                        if(orderGood.getGoodsSaleId().equals(node.get("good_id").asLong())){
+                            order.getGoods().remove(orderGood);
+                        }
+                    }
                 }
             }
-            return precheck;
+            return order;
         } catch (NullPointerException e) {
-            return Precheck.getDefault();
+            return order;
         }
     }
 
@@ -281,7 +303,6 @@ public class Client extends ClientBase {
         } else {
             log.info("失败原因{}", orderNode.get("message").asText());
         }
-
         return -1L;
     }
 }
