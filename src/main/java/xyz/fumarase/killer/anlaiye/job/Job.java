@@ -13,6 +13,7 @@ import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
 import xyz.fumarase.killer.anlaiye.job.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.*;
+import xyz.fumarase.killer.model.UserModel;
 import xyz.fumarase.killer.reporter.Reporter;
 import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
@@ -50,13 +51,12 @@ public class Job extends QuartzJobBean {
 
     @SneakyThrows(InterruptedException.class)
     private void wait(Shop shop, Integer timeout) throws OrderTimeoutException {
-        //todo 判断商家是预定还是定点开放，预定的话直接return
         while (!shop.isOpen()) {
-            log.info("店铺未营业，1秒后重试");
+            log.info("店铺未营业，0.5秒后重试");
             if (System.currentTimeMillis() - startTimeStamp >= timeout * 1000) {
                 throw new OrderTimeoutException();
             }
-            Thread.sleep(1000);
+            Thread.sleep(500);
         }
         log.info("店铺营业");
     }
@@ -91,23 +91,19 @@ public class Job extends QuartzJobBean {
             historyModel.setIsManual(true);
         }
         manager.addHistory(historyModel);
-        User user = manager.getUser(jobModel.getSource());
+        UserModel user = manager.getUser(jobModel.getSource());
+        Client client = new Client().setToken(user.getToken(), user.getLoginToken());
         Shop shop = manager.getShop(jobModel.getShopId());
         try {
             List<OrderGood> orderGoods = shop.order(jobModel.getBlackList(), jobModel.getNeedList());
             if (orderGoods.isEmpty()) {
                 throw new EmptyOrderException();
             }
-            Order order = OrderBuilder.newOrder()
-                    .setAddress(user.getAddress(jobModel.getTarget()))
-                    .setShop(shop)
-                    .setOrderGoods(orderGoods)
-                    .build();
-            order = user.precheck(shop, order);
+            Order order = client.precheck(shop, orderGoods, user.getAddress(jobModel.getTarget()));
             wait(shop, jobModel.getTimeout());
             Long orderId;
             do {
-                orderId = user.order(order);
+                orderId = client.order(order);
                 if (orderId == -1L) {
                     log.info("抢购失败,1s后重试");
                 } else {

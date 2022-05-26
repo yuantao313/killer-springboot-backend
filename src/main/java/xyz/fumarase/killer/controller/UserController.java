@@ -2,7 +2,7 @@ package xyz.fumarase.killer.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import xyz.fumarase.killer.anlaiye.object.User;
+import xyz.fumarase.killer.model.UserModel;
 import xyz.fumarase.killer.service.UserServiceImpl;
 
 import java.util.HashMap;
@@ -22,12 +22,12 @@ public class UserController {
     private UserServiceImpl userService;
 
     @GetMapping("/user")
-    public List<User> getUsers() {
+    public List<UserModel> getUsers() {
         return userService.getUsers();
     }
 
     @GetMapping("/user/{userId}")
-    public User getUser(@PathVariable("userId") Long userId) {
+    public UserModel getUser(@PathVariable("userId") Long userId) {
         return userService.getUser(userId);
     }
 
@@ -46,4 +46,5 @@ public class UserController {
     public Boolean deleteUser(@PathVariable("userId") Long userId) {
         return userService.deleteUser(userId);
     }
+
 }

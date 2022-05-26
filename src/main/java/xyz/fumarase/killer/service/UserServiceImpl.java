@@ -1,16 +1,13 @@
 package xyz.fumarase.killer.service;
 
-import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import xyz.fumarase.killer.anlaiye.login.Login;
 import xyz.fumarase.killer.anlaiye.Manager;
-import xyz.fumarase.killer.anlaiye.login.exception.LoginException;
-import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.model.UserModel;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -26,12 +23,12 @@ public class UserServiceImpl implements IUserService {
     public void setManager(Manager manager) {
         this.manager = manager;
     }
-
-    public List<User> getUsers() {
-        return manager.getUsers();
+    public List<UserModel> getUsers() {
+        List<UserModel> userModel = manager.getUsers();
+        return userModel;
     }
 
-    public User getUser(Long userId) {
+    public UserModel getUser(Long userId) {
         return manager.getUser(userId);
     }
 
@@ -58,7 +55,7 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public Boolean deleteUser(Long userId) {
+    public boolean deleteUser(Long userId) {
         try {
             manager.deleteUser(userId);
             return true;
@@ -67,4 +64,5 @@ public class UserServiceImpl implements IUserService {
             return false;
         }
     }
+
 }

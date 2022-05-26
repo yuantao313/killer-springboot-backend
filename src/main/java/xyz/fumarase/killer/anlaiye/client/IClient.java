@@ -1,9 +1,7 @@
 package xyz.fumarase.killer.anlaiye.client;
 
-import xyz.fumarase.killer.anlaiye.object.Container;
-import xyz.fumarase.killer.anlaiye.object.Order;
+import xyz.fumarase.killer.anlaiye.object.*;
 import xyz.fumarase.killer.anlaiye.object.base.AddressBase;
-import xyz.fumarase.killer.anlaiye.object.Shop;
 import xyz.fumarase.killer.anlaiye.object.base.OrderBase;
 
 import java.util.List;
@@ -32,7 +30,7 @@ public interface IClient<O extends OrderBase> {
     /**
      * @return 返回预检信息
      */
-    O precheck(Shop shop, O order) throws Exception;
+    O precheck(Shop shop, List<OrderGood> orderGoods, Address address) throws Exception;
 
     /**
      * @return 返回订单编号或者在失败时返回-1L

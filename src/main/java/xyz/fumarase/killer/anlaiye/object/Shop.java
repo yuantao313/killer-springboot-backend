@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import xyz.fumarase.killer.anlaiye.client.Client;
 
 import java.util.ArrayList;
@@ -23,13 +24,8 @@ public class Shop {
     private String shopName;
     private String selfTakeAddress;
 
-    private HashMap<Long, Good> goods = new HashMap<>();
-
-    public Shop() {
-        this.shopId = null;
-        this.shopName = null;
-        this.selfTakeAddress = null;
-    }
+    private HashMap<Long, Good> goods;
+    public Shop EXAMPLE;
 
     public Boolean isOpen() {
         return client.isShopOpen(this.shopId);

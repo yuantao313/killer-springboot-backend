@@ -2,16 +2,21 @@ package xyz.fumarase.killer.anlaiye.object;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import xyz.fumarase.killer.anlaiye.object.base.OrderBase;
 
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
  * @author YuanTao
  */
 @Data
+@Builder
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Order extends OrderBase {
     private String target;
@@ -67,5 +72,7 @@ public class Order extends OrderBase {
             this.addressLng = address.getLon();
             this.orderType = 0;
         }
+        this.deliveryDate = (new SimpleDateFormat("yyyyMMdd")).format(System.currentTimeMillis());
+        this.deliveryTime = "0";
     }
 }

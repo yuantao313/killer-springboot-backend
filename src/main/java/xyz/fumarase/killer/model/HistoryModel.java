@@ -34,4 +34,9 @@ public class HistoryModel extends ModelBase {
 
     @TableField("order_id")
     private Long orderId;
+
+    @Override
+    protected HistoryModel afterLoad() {
+        return this;
+    }
 }

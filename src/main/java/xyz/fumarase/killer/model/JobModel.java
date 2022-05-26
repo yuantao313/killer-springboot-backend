@@ -53,4 +53,10 @@ public class JobModel extends ModelBase {
     private Date updateTime;
 
     private JobModeEnum mode;
+
+
+    @Override
+    protected JobModel afterLoad() {
+        return this;
+    }
 }

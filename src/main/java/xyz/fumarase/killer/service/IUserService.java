@@ -1,6 +1,6 @@
 package xyz.fumarase.killer.service;
 
-import xyz.fumarase.killer.anlaiye.object.User;
+import xyz.fumarase.killer.model.UserModel;
 
 import java.util.List;
 
@@ -9,14 +9,13 @@ import java.util.List;
  */
 
 public interface IUserService {
-    List<User> getUsers();
+    List<UserModel> getUsers();
 
-    User getUser(Long userId);
+    UserModel getUser(Long userId);
 
     boolean addUser(Long userId, String captcha) throws Exception;
     boolean updateUser(Long userId, String captcha) throws Exception;
 
-    Boolean deleteUser(Long userId);
-
+    boolean deleteUser(Long userId);
 
 }

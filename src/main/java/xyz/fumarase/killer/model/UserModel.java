@@ -8,10 +8,9 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
-import xyz.fumarase.killer.anlaiye.crypto.Phone;
 import xyz.fumarase.killer.anlaiye.object.Address;
 
-import javax.annotation.PostConstruct;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -22,7 +21,7 @@ import java.util.List;
 @Data
 @TableName(value = "user", autoResultMap = true)
 @Accessors(chain = true)
-public class UserModel extends ModelBase {
+public class UserModel extends ModelBase implements Serializable {
     private Integer id;
 
     @TableId
@@ -30,8 +29,9 @@ public class UserModel extends ModelBase {
     private Long userId;
 
     @TableField("login_token")
+    @JsonIgnore
     private String loginToken;
-
+    @JsonIgnore
     private String token;
 
     @TableField("add_time")
@@ -41,30 +41,29 @@ public class UserModel extends ModelBase {
     private Date updateTime;
 
     @TableField(exist = false)
-    private List<Address> addressList;
-
-    @TableField(exist = false)
     private boolean isTokenValid;
 
-    @JsonIgnore
+    @TableField(exist = false)
+    private List<Address> addressList;
+
+    public UserModel afterLoad() {
+        Client client = (new Client()).setToken(token, loginToken);
+        try {
+            addressList = client.getAddress();
+            isTokenValid = true;
+        } catch (TokenInvalidException e) {
+            addressList = new ArrayList<>();
+            isTokenValid = false;
+        }
+        return this;
+    }
+
     public Address getAddress(Long target) {
-        //global cache
         for (Address address : addressList) {
             if (address.mpDecryption().equals(target)) {
                 return address;
             }
         }
-        throw new RuntimeException("address not found");
-    }
-
-    @PostConstruct
-    public void postConstruct() throws TokenInvalidException {
-        Client client = new Client().setToken(token, loginToken);
-        try {
-            addressList = client.getAddress();
-        } catch (TokenInvalidException e) {
-            addressList = new ArrayList<>(0);
-            throw e;
-        }
+        return null;
     }
 }

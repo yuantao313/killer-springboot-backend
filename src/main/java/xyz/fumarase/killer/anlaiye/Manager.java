@@ -5,11 +5,15 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import xyz.fumarase.killer.anlaiye.client.Client;
+import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.job.Job;
+import xyz.fumarase.killer.anlaiye.object.Address;
 import xyz.fumarase.killer.reporter.Reporter;
 import xyz.fumarase.killer.anlaiye.object.Shop;
-import xyz.fumarase.killer.anlaiye.object.User;
 import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;
@@ -19,6 +23,7 @@ import xyz.fumarase.killer.model.UserModel;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author YuanTao
@@ -27,8 +32,6 @@ import java.util.*;
 @Setter
 @Slf4j
 public class Manager {
-    //todo job各操作原子化
-    private HashMap<Long, User> users;
     private Scheduler scheduler;
     private Client client;
     private Reporter reporter;
@@ -48,42 +51,38 @@ public class Manager {
     private HistoryMapper historyMapper;
 
 
-
+    @CacheEvict(value = "users", allEntries = true)
     public Integer addUser(UserModel userModel) {
-        User user = User.builder()
-                .userId(userModel.getUserId())
-                .client(new Client(userModel.getToken(), userModel.getLoginToken(), 229))
-                .build().initAddress();
-        users.put(userModel.getUserId(), user);
+        log.info("添加用户：{}", userModel);
         userMapper.insert(userModel);
         return userModel.getId();
     }
 
+    @CacheEvict(value = "user", key = "#userModel.userId")
     public void updateUser(UserModel userModel) {
-        users.remove(userModel.getUserId());
-        User user = User.builder()
-                .userId(userModel.getUserId())
-                .client(new Client(userModel.getToken(), userModel.getLoginToken(), 229))
-                .build().initAddress();
-        users.put(userModel.getUserId(), user);
+        log.info("更新用户：{}", userModel);
         userMapper.updateById(userModel);
     }
 
-    public User getUser(Long userId) {
-        return users.get(userId);
+    @CachePut(value = "user", key = "#userId")
+    public UserModel getUser(Long userId) {
+        log.info("获取用户：{}", userId);
+        return userMapper.selectById(userId).afterLoad();
     }
 
-    public List<User> getUsers() {
-        return new ArrayList<>(users.values());
+    @Cacheable(value = "users")
+    public List<UserModel> getUsers() {
+        log.info("获取用户列表");
+        return userMapper.selectList(null).stream().map(UserModel::afterLoad).collect(Collectors.toList());
     }
 
+    @CacheEvict(value = "user", allEntries = true)
     public void deleteUser(Long userId) {
         log.info("删除用户：{}", userId);
-        users.remove(userId);
         userMapper.deleteById(userId);
     }
 
-
+    @CacheEvict(value = "jobs", allEntries = true)
     public Integer addJob(JobModel jobModel) {
         log.info("添加任务：{}", jobModel);
         try {
@@ -126,6 +125,7 @@ public class Manager {
         }
     }
 
+    @CacheEvict(value = "jobs", allEntries = true)
     @SneakyThrows(SchedulerException.class)
     public void deleteJob(int jobId) {
         log.info("删除任务：{}", jobId);
@@ -140,6 +140,7 @@ public class Manager {
         scheduler.triggerJob(new JobKey(String.valueOf(id), "JOB"));
     }
 
+    @CacheEvict(value = "job", key = "#jobModel.id")
     public void updateJob(JobModel jobModel) {
         log.info("更新任务：{}", jobModel);
         try {
@@ -152,6 +153,7 @@ public class Manager {
         }
     }
 
+    @CacheEvict(value = "job", key = "#jobModel.id")
     @SneakyThrows
     public void updateJob(Integer id, Map<String, Object> data) {
         JobModel jobModel = jobMapper.selectById(id);
@@ -165,13 +167,10 @@ public class Manager {
         updateJob(jobModel);
     }
 
-    private HashMap<Integer, Shop> shops;
-
+    @Cacheable(value = "shop", key = "#id")
     public Shop getShop(Integer id) {
-        if (!shops.containsKey(id)) {
-            shops.put(id, client.getShop(id));
-        }
-        return shops.get(id);
+        return client.getShop(id);
+
     }
 
     public List<JobModel> getJobs() {
@@ -213,4 +212,5 @@ public class Manager {
     public void setReporter(Reporter reporter) {
         this.reporter = reporter;
     }
+
 }

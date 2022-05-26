@@ -11,6 +11,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import org.springframework.cache.annotation.Cacheable;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
 import xyz.fumarase.killer.anlaiye.object.*;
@@ -143,6 +144,7 @@ public class Client implements IClient<Order> {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        assert result != null;
         if (!result.get("result").asBoolean()) {
             if (result.get("flag").asInt() == -641) {
                 throw new TokenInvalidException();
@@ -174,6 +176,7 @@ public class Client implements IClient<Order> {
 
         }
         List<HashMap<String, Object>> shops = new ArrayList<>();
+        assert result != null;
         for (JsonNode j : result.get("data")) {
             HashMap<String, Object> shop = new HashMap<>(2);
             shop.put("shop_id", j.get("id").asInt());
@@ -188,11 +191,12 @@ public class Client implements IClient<Order> {
         data.put("shop_id", shopId);
         data.put("target", "merchants");
         JsonNode shopNode = get("pub/shop/goodsV2", data).get("data");
-        Shop shop = new Shop();
-        shop.setShopId(shopId);
-        shop.setShopName(shopNode.get("shop_detail").get("shop_name").asText());
+        Shop.ShopBuilder sb = Shop.builder()
+                .shopId(shopId)
+                .shopName(shopNode.get("shop_detail").get("shop_name").asText());
+
         if (shopNode.get("shop_detail").get("is_self_take_new").asInt() == 1) {
-            shop.setSelfTakeAddress(shopNode.get("shop_detail").get("self_take_address").asText());
+            sb.selfTakeAddress(shopNode.get("shop_detail").get("self_take_address").asText());
         }
         HashMap<Long, Good> goods = new HashMap<>();
         for (JsonNode tagNode : shopNode.get("item_list")) {
@@ -208,8 +212,8 @@ public class Client implements IClient<Order> {
                         .build());
             }
         }
-        shop.setGoods(goods);
-        return shop;
+        sb.goods(goods);
+        return sb.build();
     }
 
     public boolean isShopOpen(int shopId) {
@@ -225,6 +229,7 @@ public class Client implements IClient<Order> {
         }
     }
 
+    @Cacheable(value = "address", key = "#root.target.getToken()")
     public List<Address> getAddress() throws TokenInvalidException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("page", 1);
@@ -241,22 +246,22 @@ public class Client implements IClient<Order> {
     }
 
 
-
     /**
      * 按照precheck结果修改order对象为有效
-     * @param shop shop对象，此参数会在之后进行解耦
-     * @param order order对象
+     *
+     * @param shop  shop对象，此参数会在之后进行解耦
+     * @param orderGoods order对象
      * @return 有效的order对象
      * @throws ClientException
      */
     @SneakyThrows(InterruptedException.class)
-    public Order precheck(Shop shop,Order order) throws ClientException {
+    public Order precheck(Shop shop, List<OrderGood> orderGoods, Address address) throws ClientException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("target", "order_center");
         data.put("school_id", schoolId);
-        data.put("supplier_id", order.getSupplierId());
+        data.put("supplier_id", shop.getShopId());
         data.put("supplier_short_name", shop.getShopName());//todo
-        data.put("goods", order.getGoods());
+        data.put("goods", orderGoods);
         data.put("orderType", shop.isSelfTake() ? 1 : 0);//把manager的get shop 改成 全局缓存
         JsonNode jsonNode = null;
         try {
@@ -268,6 +273,11 @@ public class Client implements IClient<Order> {
                     Thread.sleep(1000);
                 }
             }
+            Order order = OrderBuilder.newOrder()
+                    .setOrderGoods(orderGoods)
+                    .setAddress(address)
+                    .setShop(shop)
+                    .build();
             JsonNode anode = jsonNode.get("data").get("deliveryDateTimeList").get(0);
             order.setDeliveryDate(anode.get("delivery_date").asText());
             order.setDeliveryTime(anode.get("delivery_TimeList").get(0).get("delivery_time").asText());
@@ -280,16 +290,19 @@ public class Client implements IClient<Order> {
                      * 3001->已售罄
                      * 3003->价格更新
                      * */
-                    for(OrderGood orderGood: order.getGoods()){
-                        if(orderGood.getGoodsSaleId().equals(node.get("good_id").asLong())){
+                    for (OrderGood orderGood : orderGoods) {
+                        if (orderGood.getGoodsSaleId().equals(node.get("good_id").asLong())) {
                             order.getGoods().remove(orderGood);
+                            break;
                         }
                     }
                 }
             }
+            order.setGoods(orderGoods);
             return order;
         } catch (NullPointerException e) {
-            return order;
+            e.printStackTrace();
+            return null;
         }
     }
 
