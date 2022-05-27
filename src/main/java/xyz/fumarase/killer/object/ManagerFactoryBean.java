@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye;
+package xyz.fumarase.killer.object;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.FactoryBean;
@@ -11,8 +11,6 @@ import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;
 import xyz.fumarase.killer.model.JobModel;
-
-import java.util.HashMap;
 
 /**
  * @author YuanTao
@@ -65,6 +63,7 @@ public class ManagerFactoryBean implements FactoryBean<Manager> {
         manager.setHistoryMapper(historyMapper);
         manager.setScheduler(schedulerFactoryBean.getScheduler());
         manager.setClient(new Client());
+        manager.getClient().getContainer(229);
         manager.setReporter(reporter);
         try {
             /*HashMap<Long, User> users = new HashMap<>(userMapper.selectList(null).size());

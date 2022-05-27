@@ -1,5 +1,6 @@
-package xyz.fumarase.killer.anlaiye;
+package xyz.fumarase.killer.object;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -9,11 +10,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import xyz.fumarase.killer.anlaiye.client.Client;
-import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
-import xyz.fumarase.killer.anlaiye.job.Job;
-import xyz.fumarase.killer.anlaiye.object.Address;
+import xyz.fumarase.killer.object.job.Job;
 import xyz.fumarase.killer.reporter.Reporter;
-import xyz.fumarase.killer.anlaiye.object.Shop;
 import xyz.fumarase.killer.mapper.HistoryMapper;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;
@@ -30,6 +28,7 @@ import java.util.stream.Collectors;
  */
 @NoArgsConstructor
 @Setter
+@Getter
 @Slf4j
 public class Manager {
     private Scheduler scheduler;
@@ -165,12 +164,6 @@ public class Manager {
             field.setAccessible(false);
         }
         updateJob(jobModel);
-    }
-
-    @Cacheable(value = "shop", key = "#id")
-    public Shop getShop(Integer id) {
-        return client.getShop(id);
-
     }
 
     public List<JobModel> getJobs() {

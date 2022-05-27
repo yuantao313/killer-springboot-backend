@@ -3,20 +3,16 @@ package xyz.fumarase.killer.anlaiye.client;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import org.springframework.cache.annotation.Cacheable;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
+import xyz.fumarase.killer.object.job.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.object.*;
+import xyz.fumarase.killer.object.*;
 
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -24,24 +20,20 @@ import java.util.*;
  */
 @Getter
 @Slf4j
-public class Client implements IClient<Order> {
-    private final OkHttpClient httpClient = new OkHttpClient();
-    private final static JsonMapper jsonMapper = new JsonMapper();
-    private final Integer schoolId;
+
+public class Client extends ClientBase implements IClient<Order> {
     private String token;
     private String loginToken;
-    private final static String API_ROOT = "https://web-agent.anlaiye.com/miniprogram";
     private final static String APP_VERSION = "8.1.3";
 
     public Client() {
-        this(null, null, 110);
+        this("https://web-agent.anlaiye.com/miniprogram/agent/", 229);
     }
 
-    public Client(String token, String loginToken, Integer schoolId) {
-        this.token = token;
-        this.loginToken = loginToken;
-        this.schoolId = schoolId;
+    public Client(String API_ROOT, int containerId) {
+        super(API_ROOT, containerId);
     }
+
 
     /**
      * 设定token
@@ -63,7 +55,7 @@ public class Client implements IClient<Order> {
      * @param anonymous 是否匿名
      * @return 包装后的请求数据
      */
-    private HashMap<String, Object> wrap(HashMap<String, Object> data, Boolean anonymous) {
+    protected HashMap<String, Object> wrap(HashMap<String, Object> data, boolean anonymous) {
         data.put("app_version", APP_VERSION);
         data.put("time", System.currentTimeMillis());
         if (!anonymous && token != null && loginToken != null) {
@@ -73,84 +65,14 @@ public class Client implements IClient<Order> {
         return data;
     }
 
-    /**
-     * 发送get请求
-     *
-     * @param action 请求的action
-     * @param data   请求的数据
-     * @return 请求结果
-     */
-    private synchronized JsonNode get(String action, HashMap<String, Object> data) {
-        return get(action, "/agent/get", data, true);
-    }
-
-    /**
-     * 发送get请求
-     *
-     * @param action     请求的action
-     * @param entrypoint 请求的entrypoint
-     * @param data       请求的数据
-     * @param anonymous  是否匿名
-     * @return 请求的结果
-     */
-    private synchronized JsonNode get(String action, String entrypoint, HashMap<String, Object> data, Boolean anonymous) {
-
-        data = wrap(data, anonymous);
-        Request.Builder rb = new Request.Builder();
-        HttpUrl.Builder urlb = Objects.requireNonNull(HttpUrl.parse(API_ROOT + entrypoint)).newBuilder();
-        for (String key : data.keySet()) {
-            urlb.addQueryParameter(key, data.get(key).toString());
-        }
-        urlb.addQueryParameter("action", action);
-        Request request = rb.url(urlb.build()).build();
-        try {
-            return jsonMapper.readTree(Objects.requireNonNull(httpClient.newCall(request).execute().body()).string());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * 发送post请求
-     *
-     * @param action 请求的action
-     * @param data   请求的数据
-     * @return 请求结果
-     */
-    private synchronized JsonNode post(String action, HashMap<String, Object> data) throws TokenInvalidException {
-        return post(action, "/agent/post", data, false);
-    }
-
-    /**
-     * 发送post请求
-     *
-     * @param action     请求的action
-     * @param data       请求的数据
-     * @param entrypoint 请求的entrypoint
-     * @param anonymous  是否匿名
-     * @return 请求结果
-     */
-    private synchronized JsonNode post(String action, String entrypoint, HashMap<String, Object> data, Boolean anonymous) throws TokenInvalidException {
-        data = wrap(data, anonymous);
+    private synchronized JsonNode get(String action, HashMap<String, Object> data, boolean anonymous) throws TokenInvalidException {
         data.put("action", action);
-        JsonNode result = null;
-        try {
-            Request.Builder rb = new Request.Builder();
-            HttpUrl.Builder urlb = Objects.requireNonNull(HttpUrl.parse(API_ROOT + entrypoint)).newBuilder();
-            RequestBody body = RequestBody.create(jsonMapper.writeValueAsString(data), okhttp3.MediaType.parse("application/json; charset=utf-8"));
-            Request request = rb.url(urlb.build()).post(body).build();
-            result = jsonMapper.readTree(Objects.requireNonNull(httpClient.newCall(request).execute().body()).string());
+        return get("get", wrap(data, anonymous));
+    }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        assert result != null;
-        if (!result.get("result").asBoolean()) {
-            if (result.get("flag").asInt() == -641) {
-                throw new TokenInvalidException();
-            }
-        }
-        return result;
+    private synchronized JsonNode post(String action, HashMap<String, Object> data, boolean anonymous) throws TokenInvalidException {
+        data.put("action", action);
+        return post("post", wrap(data, anonymous));
     }
 
     /**
@@ -159,42 +81,39 @@ public class Client implements IClient<Order> {
      * @param schoolId 学校ID
      * @return 学校中存在的商家和商家ID
      */
+    @SneakyThrows(TokenInvalidException.class)
+    @Cacheable(value = "container")
     public Container getContainer(int schoolId) {
-        return null;
-    }
-
-    public List<HashMap<String, Object>> getSchool(Integer schoolId) {
         HashMap<String, Object> data = new HashMap<>();
-        data.put("school_id", schoolId);
+        data.put("school_id", containerId);
         data.put("target", "merchants");
         data.put("page", 1);
         data.put("pageSize", 1000);
-        JsonNode result = null;
-        try {
-            result = post("pub/shop/list", data);
-        } catch (TokenInvalidException ignored) {
-
-        }
-        List<HashMap<String, Object>> shops = new ArrayList<>();
+        JsonNode result;
+        result = post("pub/shop/list", data, true).get("data");
+        Container.ContainerBuilder cb = Container.builder()
+                .containerId(containerId);
+        List<HashMap<String, Object>> shops = new ArrayList<>(0);
         assert result != null;
-        for (JsonNode j : result.get("data")) {
+        for (JsonNode j : result) {
             HashMap<String, Object> shop = new HashMap<>(2);
-            shop.put("shop_id", j.get("id").asInt());
-            shop.put("shop_name", j.get("shop_name").asText());
+            shop.put("shopId", j.get("id").asInt());
+            shop.put("shopName", j.get("shop_name").asText());
             shops.add(shop);
         }
-        return shops;
+        return cb.shops(shops).build();
     }
 
+    @SneakyThrows(TokenInvalidException.class)
+    @Cacheable(value = "shop", key = "#shopId")
     public Shop getShop(int shopId) {
         HashMap<String, Object> data = new HashMap<>();
         data.put("shop_id", shopId);
         data.put("target", "merchants");
-        JsonNode shopNode = get("pub/shop/goodsV2", data).get("data");
+        JsonNode shopNode = get("pub/shop/goodsV2", data, true).get("data");
         Shop.ShopBuilder sb = Shop.builder()
                 .shopId(shopId)
                 .shopName(shopNode.get("shop_detail").get("shop_name").asText());
-
         if (shopNode.get("shop_detail").get("is_self_take_new").asInt() == 1) {
             sb.selfTakeAddress(shopNode.get("shop_detail").get("self_take_address").asText());
         }
@@ -216,14 +135,14 @@ public class Client implements IClient<Order> {
         return sb.build();
     }
 
+    @SneakyThrows(TokenInvalidException.class)
     public boolean isShopOpen(int shopId) {
         HashMap<String, Object> data = new HashMap<>();
         data.put("shop_id", shopId);
         data.put("target", "merchants");
-        JsonNode shopNode = get("pub/shop/goodsV2", data).get("data");
+        JsonNode shopNode = get("pub/shop/goodsV2", data, true).get("data");
         try {
-            return true;
-            //return shopNode.get("shop_detail").get("is_open").asInt() == 1;
+            return shopNode.get("shop_detail").get("is_open").asInt() == 1;
         } catch (NullPointerException e) {
             return true;
         }
@@ -235,7 +154,7 @@ public class Client implements IClient<Order> {
         data.put("page", 1);
         data.put("pageSize", 1000);
         data.put("target", "passport_v3");
-        JsonNode result = post("pub/address/list", data).get("data");
+        JsonNode result = post("pub/address/list", data, false).get("data");
         try {
             return jsonMapper.readValue(result.toString(), new TypeReference<List<Address>>() {
             });
@@ -247,33 +166,33 @@ public class Client implements IClient<Order> {
 
 
     /**
-     * 按照precheck结果修改order对象为有效
+     * 按照precheck结果生成有效Order对象
      *
-     * @param shop  shop对象，此参数会在之后进行解耦
+     * @param shop       shop对象，此参数会在之后进行解耦
      * @param orderGoods order对象
      * @return 有效的order对象
      * @throws ClientException
      */
     @SneakyThrows(InterruptedException.class)
-    public Order precheck(Shop shop, List<OrderGood> orderGoods, Address address) throws ClientException {
+    public Order precheck(Shop shop, List<OrderGood> orderGoods, Address address, boolean skipGoodsCheck) throws ClientException, EmptyOrderException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("target", "order_center");
-        data.put("school_id", schoolId);
+        data.put("school_id", containerId);
         data.put("supplier_id", shop.getShopId());
-        data.put("supplier_short_name", shop.getShopName());//todo
+        data.put("supplier_short_name", shop.getShopName());
         data.put("goods", orderGoods);
-        data.put("orderType", shop.isSelfTake() ? 1 : 0);//把manager的get shop 改成 全局缓存
-        JsonNode jsonNode = null;
+        data.put("orderType", shop.isSelfTake() ? 1 : 0);
+        JsonNode jsonNode;
+        Order order = null;
         try {
-            //返回最早的时间
             while (true) {
-                jsonNode = post("food/order/precheck", data);
+                jsonNode = post("food/order/precheck", data, false);
                 if (jsonNode.get("result").asBoolean()) break;
                 else {
                     Thread.sleep(1000);
                 }
             }
-            Order order = OrderBuilder.newOrder()
+            order = OrderBuilder.newOrder()
                     .setOrderGoods(orderGoods)
                     .setAddress(address)
                     .setShop(shop)
@@ -281,28 +200,37 @@ public class Client implements IClient<Order> {
             JsonNode anode = jsonNode.get("data").get("deliveryDateTimeList").get(0);
             order.setDeliveryDate(anode.get("delivery_date").asText());
             order.setDeliveryTime(anode.get("delivery_TimeList").get(0).get("delivery_time").asText());
-            for (JsonNode node : jsonNode.get("data").get("right_goods")) {
-                if (node.get("status").asInt() != 0) {
-                    /*
-                     * 状态码说明
-                     * 0->无异常
-                     * 3000->已下架
-                     * 3001->已售罄
-                     * 3003->价格更新
-                     * */
-                    for (OrderGood orderGood : orderGoods) {
-                        if (orderGood.getGoodsSaleId().equals(node.get("good_id").asLong())) {
-                            order.getGoods().remove(orderGood);
-                            break;
+            if (!skipGoodsCheck) {
+                for (JsonNode node : jsonNode.get("data").get("right_goods")) {
+                    if (node.get("status").asInt() != 0) {
+                        for (OrderGood orderGood : orderGoods) {
+                            if (orderGood.getGoodsSaleId().equals(node.get("goods_sale_id").asLong())) {
+                                order.getGoods().remove(orderGood);
+                                switch (node.get("status").asInt()) {
+                                    case 3000:
+                                        log.info("商品已下架");
+                                        break;
+                                    case 3001:
+                                        log.info("商品已售罄");
+                                        break;
+                                    case 3003:
+                                        log.info("商品价格更新");
+                                        break;
+                                }
+                                break;
+                            }
                         }
                     }
                 }
+            }
+            if (order.getGoods().size() == 0) {
+                throw new EmptyOrderException();
             }
             order.setGoods(orderGoods);
             return order;
         } catch (NullPointerException e) {
             e.printStackTrace();
-            return null;
+            return order;
         }
     }
 
@@ -310,7 +238,7 @@ public class Client implements IClient<Order> {
     public Long order(Order order) throws ClientException {
         HashMap<String, Object> data = jsonMapper.readValue(jsonMapper.writeValueAsString(order), new TypeReference<HashMap<String, Object>>() {
         });
-        JsonNode orderNode = post("food/order/info", data);
+        JsonNode orderNode = post("food/order/info", data, false);
         if (orderNode.get("result").asBoolean()) {
             return orderNode.get("data").get("orderId").asLong();
         } else {

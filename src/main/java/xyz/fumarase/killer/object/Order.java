@@ -1,10 +1,11 @@
-package xyz.fumarase.killer.anlaiye.object;
+package xyz.fumarase.killer.object;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import xyz.fumarase.killer.anlaiye.object.Address;
 import xyz.fumarase.killer.anlaiye.object.base.OrderBase;
 
 

@@ -1,4 +1,6 @@
-package xyz.fumarase.killer.anlaiye.object;
+package xyz.fumarase.killer.object;
+
+import xyz.fumarase.killer.anlaiye.object.Address;
 
 import java.util.List;
 

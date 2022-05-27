@@ -3,11 +3,12 @@ package xyz.fumarase.killer.service;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import xyz.fumarase.killer.anlaiye.Manager;
+import xyz.fumarase.killer.object.Container;
+import xyz.fumarase.killer.object.Manager;
 import xyz.fumarase.killer.anlaiye.client.Client;
 import xyz.fumarase.killer.anlaiye.login.Login;
-import xyz.fumarase.killer.anlaiye.object.Good;
-import xyz.fumarase.killer.anlaiye.object.Shop;
+import xyz.fumarase.killer.object.Good;
+import xyz.fumarase.killer.object.Shop;
 import xyz.fumarase.killer.mapper.JobMapper;
 import xyz.fumarase.killer.mapper.UserMapper;
 
@@ -47,8 +48,8 @@ public class MiscServiceImpl implements IMiscService {
     }
 
     @Override
-    public List<HashMap<String, Object>> getSchool(Integer schoolId) {
-        return (new Client()).getSchool(schoolId);
+    public Container getSchool(Integer schoolId) {
+        return (new Client()).getContainer(schoolId);
     }
 
     @Override
@@ -61,7 +62,7 @@ public class MiscServiceImpl implements IMiscService {
 
     @Override
     public List<Good> testNeedItem(Integer shopId,String needItemName) {
-        Shop shop = manager.getShop(shopId);
+        Shop shop = (new Client()).getShop(shopId);
         List<Good> goods = new ArrayList<>(shop.getGoods().values());
         goods.removeIf(good -> !good.belongTo(needItemName));
         return goods;

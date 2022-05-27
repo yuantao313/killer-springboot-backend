@@ -41,7 +41,7 @@ public class UserModel extends ModelBase implements Serializable {
     private Date updateTime;
 
     @TableField(exist = false)
-    private boolean isTokenValid;
+    private boolean tokenValid;
 
     @TableField(exist = false)
     private List<Address> addressList;
@@ -50,10 +50,10 @@ public class UserModel extends ModelBase implements Serializable {
         Client client = (new Client()).setToken(token, loginToken);
         try {
             addressList = client.getAddress();
-            isTokenValid = true;
+            tokenValid = true;
         } catch (TokenInvalidException e) {
             addressList = new ArrayList<>();
-            isTokenValid = false;
+            tokenValid = false;
         }
         return this;
     }

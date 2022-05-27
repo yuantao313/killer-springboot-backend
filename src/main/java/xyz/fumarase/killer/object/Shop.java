@@ -1,10 +1,10 @@
-package xyz.fumarase.killer.anlaiye.object;
+package xyz.fumarase.killer.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import xyz.fumarase.killer.anlaiye.client.Client;
 
 import java.util.ArrayList;
@@ -19,12 +19,16 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 public class Shop {
+    @JsonIgnore
     private static final Client client = new Client();
     private Integer shopId;
     private String shopName;
+    @JsonIgnore
     private String selfTakeAddress;
+    @JsonIgnore
 
     private HashMap<Long, Good> goods;
+    @JsonIgnore
     public Shop EXAMPLE;
 
     public Boolean isOpen() {
@@ -54,9 +58,7 @@ public class Shop {
                 goods.add(good);
             }
         }
-        log.info("共计{}种商品", goods.size());
-        //step2
-        log.info("开始按照需求添加");
+        log.info("共计{}种商品.开始按照需求添加", goods.size());
         log.info("需求: {}", needList);
         HashMap<Long, OrderGood> shoppingCart = new HashMap<>(size);
         HashMap<String, Integer> myNeedList = new HashMap<>(needList.size());
@@ -80,20 +82,20 @@ public class Shop {
                         limitB = false;
                     }
                     if (limitA && limitB) {
-                        added=true;
+                        added = true;
                         myNeedList.put(keyWord, myNeedList.getOrDefault(keyWord, 0) + 1);
                         if (shoppingCart.containsKey(goodId)) {
                             shoppingCart.get(goodId).setNumber(shoppingCart.get(goodId).getNumber() + 1);
                         } else {
                             shoppingCart.put(goodId, good.toOrder());
                         }
-                        log.info("已添加{}:{}/{}", keyWord, myNeedList.get(keyWord), needList.get(keyWord));
+                        log.info("已添加\"{}\":{}/{}", keyWord, myNeedList.get(keyWord), needList.get(keyWord));
                     }
                 }
             }
         }
         while (added);
-        log.info("购物车总计{}件商品", shoppingCart.size());
+        log.info("添加完成");
         return new ArrayList<>(shoppingCart.values());
     }
 }

@@ -2,7 +2,8 @@ package xyz.fumarase.killer.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import xyz.fumarase.killer.anlaiye.object.Good;
+import xyz.fumarase.killer.object.Container;
+import xyz.fumarase.killer.object.Good;
 import xyz.fumarase.killer.service.MiscServiceImpl;
 
 import java.util.HashMap;
@@ -28,7 +29,7 @@ public class MiscController {
     }
 
     @GetMapping("/school/{schoolId}")
-    public List<HashMap<String, Object>> school(@PathVariable("schoolId") Integer schoolId) {
+    public Container school(@PathVariable("schoolId") Integer schoolId) {
         return miscService.getSchool(schoolId);
     }
 

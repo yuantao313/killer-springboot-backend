@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye.object;
+package xyz.fumarase.killer.object;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;

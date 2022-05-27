@@ -1,4 +1,4 @@
-package xyz.fumarase.killer.anlaiye.job;
+package xyz.fumarase.killer.object.job;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -6,14 +6,16 @@ import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
-import xyz.fumarase.killer.anlaiye.Manager;
+import xyz.fumarase.killer.object.Manager;
 import xyz.fumarase.killer.anlaiye.client.Client;
-import xyz.fumarase.killer.anlaiye.job.exception.OrderTimeoutException;
+import xyz.fumarase.killer.object.job.exception.OrderTimeoutException;
 import xyz.fumarase.killer.anlaiye.client.exception.ClientException;
-import xyz.fumarase.killer.anlaiye.job.exception.EmptyOrderException;
+import xyz.fumarase.killer.object.job.exception.EmptyOrderException;
 import xyz.fumarase.killer.anlaiye.client.exception.TokenInvalidException;
-import xyz.fumarase.killer.anlaiye.object.*;
 import xyz.fumarase.killer.model.UserModel;
+import xyz.fumarase.killer.object.Order;
+import xyz.fumarase.killer.object.OrderGood;
+import xyz.fumarase.killer.object.Shop;
 import xyz.fumarase.killer.reporter.Reporter;
 import xyz.fumarase.killer.model.HistoryModel;
 import xyz.fumarase.killer.model.JobModel;
@@ -29,12 +31,12 @@ import static xyz.fumarase.killer.constrant.JobModeEnum.UNTIL_SUCCESS;
  */
 @Component
 @Slf4j
+@SuppressWarnings("BusyWait")
 public class Job extends QuartzJobBean {
 
 
     private Long startTimeStamp;
 
-    private Client client;
     private Reporter reporter;
 
     @Autowired
@@ -84,23 +86,19 @@ public class Job extends QuartzJobBean {
         historyModel.setJobId(jobModel.getId());
         historyModel.setStatus(RUNNING);
         Calendar c = Calendar.getInstance();
-        if (jobModel.getHour() == c.get(Calendar.HOUR_OF_DAY) && jobModel.getMinute() == c.get(Calendar.MINUTE)) {
-            //todo 这样做不准确但没办法
-            historyModel.setIsManual(false);
-        } else {
-            historyModel.setIsManual(true);
-        }
+        //todo 这样做不准确但没办法
+        historyModel.setIsManual(jobModel.getHour() != c.get(Calendar.HOUR_OF_DAY) || jobModel.getMinute() != c.get(Calendar.MINUTE));
         manager.addHistory(historyModel);
         UserModel user = manager.getUser(jobModel.getSource());
         Client client = new Client().setToken(user.getToken(), user.getLoginToken());
-        Shop shop = manager.getShop(jobModel.getShopId());
+        Shop shop = client.getShop(jobModel.getShopId());
         try {
             List<OrderGood> orderGoods = shop.order(jobModel.getBlackList(), jobModel.getNeedList());
             if (orderGoods.isEmpty()) {
                 throw new EmptyOrderException();
             }
-            Order order = client.precheck(shop, orderGoods, user.getAddress(jobModel.getTarget()));
             wait(shop, jobModel.getTimeout());
+            Order order = client.precheck(shop, orderGoods, user.getAddress(jobModel.getTarget()),true);
             Long orderId;
             do {
                 orderId = client.order(order);
@@ -114,14 +112,14 @@ public class Job extends QuartzJobBean {
                 Thread.sleep(1000);
             } while (System.currentTimeMillis() - startTimeStamp < jobModel.getTimeout() * 1000);
             if (jobModel.getMode() == ONCE) {
-                log.info("任务被设定为一次性任务，将任务状态暂停");
+                log.info("一次性任务，将任务状态暂停");
                 manager.pauseJob(jobId);
             }
             if (orderId > 0) {
                 historyModel.setOrderId(orderId);
                 historyModel.setStatus(isFullySuccess(orderGoods, jobModel.getNeedList()) ? SUCCESS : PARTIALLY);
                 if (jobModel.getMode() == UNTIL_SUCCESS) {
-                    log.info("任务被设定为直到成功任务，并且本次执行成功，将任务状态暂停");
+                    log.info("直到成功任务，并且本次执行成功，将任务状态暂停");
                     manager.pauseJob(jobId);
                 }
             } else {

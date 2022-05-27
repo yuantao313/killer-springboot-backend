@@ -2,10 +2,9 @@ package xyz.fumarase.killer.service;
 
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import xyz.fumarase.killer.anlaiye.login.Login;
-import xyz.fumarase.killer.anlaiye.Manager;
+import xyz.fumarase.killer.object.Manager;
 import xyz.fumarase.killer.model.UserModel;
 
 import java.util.HashMap;

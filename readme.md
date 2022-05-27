@@ -17,3 +17,8 @@ It is still developing.
 - [ ] Order cache.
 - [ ] Arguments configuration.
 - [x] Data source changed to MySQL.
+## Structure
+```mermaid
+graph UD;
+A->B;
+```
